@@ -57,7 +57,7 @@ namespace RungTramTraSu
                 // Bù trừ tỷ lệ scale của thuyền để player không bị phóng to và bay lên trời
                 Vector3 boatScale = boat.localScale;
                 player.localScale = new Vector3(1f / boatScale.x, 1f / boatScale.y, 1f / boatScale.z);
-                player.localPosition = new Vector3(0f, 1.2f / boatScale.y, -1.0f / boatScale.z);
+                player.localPosition = new Vector3(0f, 0.3f / boatScale.y, -1.0f / boatScale.z);
                 player.localRotation = Quaternion.identity;
                 
                 var controller = player.GetComponent<PlayerController>();

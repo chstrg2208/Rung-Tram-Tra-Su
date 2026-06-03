@@ -31,14 +31,6 @@ namespace RungTramTraSu
             float timeVal = Time.time + randomOffset;
             float newY = initialY + Mathf.Sin(timeVal * bobFrequency) * bobAmplitude;
             transform.position = new Vector3(currentPosition.x, newY, currentPosition.z);
-
-            // 2. Lắc lư nghiêng ngả nhẹ (Rocking)
-            float angleX = Mathf.Sin(timeVal * rockFrequency) * rockXAmplitude;
-            float angleZ = Mathf.Cos(timeVal * rockFrequency * 1.1f) * rockZAmplitude;
-
-            // Lấy góc xoay Y (Heading) hiện tại của thuyền để không khóa hướng xoay ngang
-            float currentHeadingY = transform.eulerAngles.y;
-            transform.rotation = Quaternion.Euler(angleX, currentHeadingY, angleZ);
         }
     }
 }
