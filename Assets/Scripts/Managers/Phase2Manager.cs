@@ -53,8 +53,11 @@ namespace RungTramTraSu
             if (player != null && boat != null)
             {
                 player.SetParent(boat);
-                // Keep player at a seated height
-                player.localPosition = new Vector3(0f, 1.2f, -1.0f);
+                
+                // Bù trừ tỷ lệ scale của thuyền để player không bị phóng to và bay lên trời
+                Vector3 boatScale = boat.localScale;
+                player.localScale = new Vector3(1f / boatScale.x, 1f / boatScale.y, 1f / boatScale.z);
+                player.localPosition = new Vector3(0f, 1.2f / boatScale.y, -1.0f / boatScale.z);
                 player.localRotation = Quaternion.identity;
                 
                 var controller = player.GetComponent<PlayerController>();
@@ -211,6 +214,7 @@ namespace RungTramTraSu
             if (player != null)
             {
                 player.SetParent(null);
+                player.localScale = Vector3.one; // Khôi phục lại tỷ lệ kích thước chuẩn 1x1x1 cho người chơi
                 
                 var controller = player.GetComponent<PlayerController>();
                 if (controller != null)
