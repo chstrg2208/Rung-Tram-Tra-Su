@@ -2,6 +2,7 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 namespace RungTramTraSu
 {
@@ -30,6 +31,7 @@ namespace RungTramTraSu
         private bool isZooming = false;
         private float targetFOV;
         private bool isTakingPhoto = false;
+        private string currentPhotoCategory = "General";
 
         public bool HasCamera => hasCamera;
         public bool IsZooming => isZooming;
@@ -53,6 +55,7 @@ namespace RungTramTraSu
             if (!hasCamera || isTakingPhoto) return;
 
             HandleZoom();
+            UpdateDynamicCategory();
             HandleCapture();
         }
 
@@ -130,7 +133,7 @@ namespace RungTramTraSu
             // Lưu ảnh vào PersistentGameManager hoặc Phase1Manager
             if (PersistentGameManager.Instance != null)
             {
-                PersistentGameManager.Instance.SavePhoto(capturedTex);
+                PersistentGameManager.Instance.SavePhoto(currentPhotoCategory, capturedTex);
             }
             if (Phase1Manager.Instance != null)
             {
@@ -214,6 +217,48 @@ namespace RungTramTraSu
         public void SetQuestTarget(Transform target)
         {
             questTarget = target;
+        }
+
+        public void SetPhotoCategory(string category)
+        {
+            currentPhotoCategory = category;
+        }
+
+        private void UpdateDynamicCategory()
+        {
+            string sceneName = SceneManager.GetActiveScene().name;
+            if (sceneName.Contains("Phase4"))
+            {
+                AnimalAI[] animals = FindObjectsByType<AnimalAI>(FindObjectsSortMode.None);
+                AnimalAI bestAnimal = null;
+                float bestDist = float.MaxValue;
+                foreach (var animal in animals)
+                {
+                    if (animal == null || animal.HasFled) continue;
+                    Vector3 vp = playerCamera.WorldToViewportPoint(animal.transform.position);
+                    if (vp.z > 0 && vp.x >= 0.1f && vp.x <= 0.9f && vp.y >= 0.1f && vp.y <= 0.9f)
+                    {
+                        float distToCenter = Vector2.Distance(new Vector2(vp.x, vp.y), new Vector2(0.5f, 0.5f));
+                        if (distToCenter < bestDist)
+                        {
+                            bestDist = distToCenter;
+                            bestAnimal = animal;
+                        }
+                    }
+                }
+                if (bestAnimal != null)
+                {
+                    currentPhotoCategory = "Phase4_" + bestAnimal.Type.ToString();
+                }
+            }
+            else if (sceneName.Contains("Phase5"))
+            {
+                currentPhotoCategory = "Phase5_Sunset";
+            }
+            else if (sceneName.Contains("Phase1"))
+            {
+                currentPhotoCategory = "Phase1_Mango";
+            }
         }
     }
 }

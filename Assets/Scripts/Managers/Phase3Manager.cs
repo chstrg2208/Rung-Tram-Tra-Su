@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement;
@@ -10,16 +11,29 @@ namespace RungTramTraSu
         public static Phase3Manager Instance { get; private set; }
 
         [Header("References")]
-        [SerializeField] private GrandpaAI grandpa;
+        [SerializeField] private Transform boat;
         [SerializeField] private Transform player;
         [SerializeField] private TextMeshProUGUI objectiveText;
         [SerializeField] private PhotoCamera photoCamera;
-        [SerializeField] private Transform rootTarget;
-        [SerializeField] private GameObject bridgeEndTrigger;
 
-        private bool storyTriggered = false;
-        private bool rootPhotographed = false;
-        private bool transitionTriggered = false;
+        [Header("Movement Settings")]
+        [SerializeField] private float boatSpeed = 1.3f; // Rất chậm, thư thái
+        [SerializeField] private float rotationSpeed = 2.0f;
+
+        private List<Vector3> waypoints = new List<Vector3>();
+        private int currentWaypointIndex = 0;
+        private bool isTravelling = true;
+        private bool dialogueCompleted = false;
+
+        private string[] craneStoryDialogue = new string[]
+        {
+            "Nước trôi lững lờ mát mẻ quá con há. Khúc này rừng tràm rập rạp và hoang sơ nhất đó.",
+            "Con ngước nhìn mấy vệt nắng (God Rays) chiếu xiên qua kẽ lá kìa, đẹp y chang tranh vẽ vậy.",
+            "Hồi ngoại còn nhỏ bằng con, vùng đất này sếu đầu đỏ tụi nó về nhiều vô số kể.",
+            "Sếu đầu đỏ là loài chim quý lắm, cao kiêu sa, sải cánh rộng nhảy múa trên thảm bèo xanh mướt.",
+            "Tiếc là sau này thiên nhiên thay đổi, tụi nó hiếm dần rồi bỏ đi mất tăm...",
+            "Ngoại mong rừng tràm mình giữ được nét hoang sơ này, để một ngày nào đó đàn sếu lại bay về mái nhà xưa."
+        };
 
         private void Awake()
         {
@@ -29,109 +43,119 @@ namespace RungTramTraSu
 
         private void Start()
         {
-            // Unlock player movement
-            if (player != null)
+            // Generate waypoints along the bamboo bridge canal path
+            float bzStart = -48f;
+            float bzEnd = 48f;
+            float bStep = 2.0f;
+            for (float z = bzStart; z <= bzEnd; z += bStep)
             {
-                var controller = player.GetComponent<PlayerController>();
-                if (controller != null) controller.SetFrozen(false);
+                // Follow bridge path but with offset
+                float x = 5f + Mathf.Sin(z * 0.12f) * 6f - 3.5f; // Offset to float alongside bridge
+                waypoints.Add(new Vector3(x, -0.82f, z));
             }
 
-            UpdateObjectiveText("Mục tiêu: Đi dọc theo cầu tre, bám sát Ông Ngoại để khám phá rừng sâu.");
-            StartCoroutine(IntroTalk());
+            // Put player on the boat
+            if (player != null && boat != null)
+            {
+                player.SetParent(boat);
+                Vector3 boatScale = boat.localScale;
+                player.localScale = new Vector3(1f / boatScale.x, 1f / boatScale.y, 1f / boatScale.z);
+                player.localPosition = new Vector3(0f, 0.3f / boatScale.y, -1.0f / boatScale.z);
+                player.localRotation = Quaternion.identity;
+
+                var controller = player.GetComponent<PlayerController>();
+                if (controller != null)
+                {
+                    controller.SetFrozen(false);
+                    controller.SetMovementLocked(true);
+                }
+
+                var cc = player.GetComponent<CharacterController>();
+                if (cc != null) cc.enabled = false;
+            }
+
+            UpdateObjectiveText("Thư giãn ngắm cảnh rừng tràm rậm rạp và lắng nghe Ông Ngoại kể chuyện...");
+            StartCoroutine(StoryRoutine());
         }
 
-        private IEnumerator IntroTalk()
+        private IEnumerator StoryRoutine()
         {
-            yield return new WaitForSeconds(2f);
-            DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
-                "Đi trên cầu tre con nhớ đi cẩn thận nha, nhìn xuống chân coi chừng trượt chân ngã.",
-                "Rừng sâu ở đây yên tĩnh lắm con, ánh sáng mặt trời chen qua từng nhánh cây tạo tia nắng lung linh ghê chưa!"
+            yield return new WaitForSeconds(3.5f);
+            bool dialogueDone = false;
+            DialogueManager.Instance.ShowDialogue("Ông Ngoại", craneStoryDialogue, () => {
+                dialogueDone = true;
             });
+            yield return new WaitUntil(() => dialogueDone);
+            dialogueCompleted = true;
         }
 
         private void Update()
         {
-            if (player == null || transitionTriggered) return;
-
-            float playerZ = player.position.z;
-
-            // Trigger breathing root story at Z = -12m
-            if (!storyTriggered && playerZ >= -12f && playerZ < 5f)
+            if (isTravelling)
             {
-                storyTriggered = true;
-                StartCoroutine(BreathingRootStoryRoutine());
-            }
-
-            // Check bridge completion
-            if (grandpa != null && grandpa.ReachedEnd() && Vector3.Distance(player.position, grandpa.transform.position) < 3.5f)
-            {
-                TriggerSceneTransition();
+                MoveBoat();
             }
         }
 
-        private IEnumerator BreathingRootStoryRoutine()
+        private void MoveBoat()
         {
-            // Grandpa stops and faces player (GrandpaAI checks distance, we just trigger Dialogue)
-            string[] dialogue = new string[] {
-                "Con dừng lại dòm mấy cái rễ cây nhô lên mặt nước xung quanh chân cầu tre nè con.",
-                "Mấy loài cây khác ngập nước lâu ngày là thối rễ chết ngắc hà, còn cây tràm này ngập nước bao lâu cũng trơ trơ ra đó.",
-                "Là nhờ mấy cái rễ thở nhô ngược lên trời như chông này nè! Tụi nó hít oxy nuôi cây sống đó con. Kỳ diệu thiệt chớ!",
-                "Con lấy máy ảnh chụp một tấm rễ thở của cây tràm cho ông ngoại xem đi!"
-            };
-
-            bool dialogueDone = false;
-            DialogueManager.Instance.ShowDialogue("Ông Ngoại", dialogue, () => {
-                dialogueDone = true;
-            });
-
-            yield return new WaitUntil(() => dialogueDone);
-
-            // Unlock photo camera targeting roots
-            if (photoCamera != null)
+            if (waypoints.Count == 0 || currentWaypointIndex >= waypoints.Count || boat == null)
             {
-                photoCamera.UnlockCamera();
-                photoCamera.SetQuestTarget(rootTarget);
+                ReachEnd();
+                return;
             }
 
-            UpdateObjectiveText("Mục tiêu: Ngắm và chụp ảnh cụm Rễ Thở của cây tràm bên sườn cầu tre.");
+            Vector3 targetPos = waypoints[currentWaypointIndex];
+            boat.position = Vector3.MoveTowards(boat.position, targetPos, boatSpeed * Time.deltaTime);
+
+            Vector3 direction = (targetPos - boat.position).normalized;
+            if (direction != Vector3.zero)
+            {
+                Quaternion targetRot = Quaternion.LookRotation(direction);
+                boat.rotation = Quaternion.Slerp(boat.rotation, targetRot, rotationSpeed * Time.deltaTime);
+            }
+
+            if (Vector3.Distance(boat.position, targetPos) < 0.6f)
+            {
+                currentWaypointIndex++;
+            }
         }
 
-        public void OnPhotoQuestCompleted()
+        private void ReachEnd()
         {
-            if (rootPhotographed) return;
-            rootPhotographed = true;
+            isTravelling = false;
+            UpdateObjectiveText("Xuồng neo lại sát bãi đầm lầy. Chuẩn bị bước xuống...");
 
-            UpdateObjectiveText("Chụp ảnh Rễ Tràm thành công! Tiếp tục bám sát ông ngoại.");
-            DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
-                "Hình nét ghê con! Nhìn rễ tràm nhấp nhô mộc mạc y chang ngoài đời vậy đó.",
-                "Thôi, hai ông cháu mình đi tiếp ra khu đầm lầy bảo tồn chim chóc nghen con."
-            });
+            StartCoroutine(TransitionRoutine());
         }
 
-        public void ShowGrandpaWarning(string warning)
+        private IEnumerator TransitionRoutine()
         {
-            // Temporary message in objective text without freezing player
-            StartCoroutine(ShowTemporaryMessage(warning, 4f));
-        }
+            // Wait for dialogue if not finished
+            if (!dialogueCompleted)
+            {
+                yield return new WaitUntil(() => dialogueCompleted);
+            }
+            yield return new WaitForSeconds(2.0f);
 
-        private IEnumerator ShowTemporaryMessage(string msg, float duration)
-        {
-            string oldObjective = objectiveText.text;
-            objectiveText.text = "Ông Ngoại kêu: \"" + msg + "\"";
-            objectiveText.color = Color.yellow;
-            yield return new WaitForSeconds(duration);
-            objectiveText.text = oldObjective;
-            objectiveText.color = Color.white;
-        }
+            if (player != null)
+            {
+                player.SetParent(null);
+                player.localScale = Vector3.one;
 
-        private void TriggerSceneTransition()
-        {
-            transitionTriggered = true;
-            UpdateObjectiveText("Chuẩn bị chuyển sang Khu bảo tồn đầm lầy...");
-            
+                var controller = player.GetComponent<PlayerController>();
+                if (controller != null)
+                {
+                    controller.SetMovementLocked(false);
+                }
+
+                var cc = player.GetComponent<CharacterController>();
+                if (cc != null) cc.enabled = true;
+            }
+
             if (ScreenFader.Instance != null)
             {
-                ScreenFader.Instance.StartFadeOut(2f, () => {
+                ScreenFader.Instance.StartFadeOut(2.5f, () => {
                     SceneManager.LoadScene("Phase4_Sanctuary");
                 });
             }

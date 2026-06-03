@@ -33,12 +33,33 @@ namespace RungTramTraSu
             }
         }
 
+        public bool HasFled => hasFled;
+
         private void Update()
         {
+            if (isFleeing)
+            {
+                // Fleeing movement is handled by FleeAndRespawnRoutine
+                return;
+            }
+
+            if (player != null && !hasFled)
+            {
+                float dist = Vector3.Distance(transform.position, player.position);
+                bool playerIsCrouching = playerController != null && playerController.IsCrouching;
+                float scareDist = playerIsCrouching ? 3.0f : 8.0f;
+
+                if (dist < scareDist)
+                {
+                    TriggerFlee();
+                    return;
+                }
+            }
+
             switch (animalType)
             {
                 case AnimalType.Stork:
-                    HandleStork();
+                    // Stork stands idle on ground/tree
                     break;
                 case AnimalType.Snake:
                     HandleSnake();
@@ -55,40 +76,66 @@ namespace RungTramTraSu
             }
         }
 
-        private void HandleStork()
+        private void TriggerFlee()
         {
-            if (isFleeing)
+            isFleeing = true;
+            hasFled = true;
+            Debug.Log("[AnimalAI] scared and fleeing: " + animalType);
+            if (Phase4Manager.Instance != null)
             {
-                // Fly away upwards and forwards
-                transform.Translate(new Vector3(0.3f, 1.2f, 1.0f) * speed * Time.deltaTime, Space.World);
-                // Rotate to fly away
-                transform.rotation = Quaternion.LookRotation(new Vector3(0.3f, 1.2f, 1.0f));
-                
-                // Destroy after flying far
-                if (Vector3.Distance(transform.position, startPos) > 60f)
+                Phase4Manager.Instance.NotifyAnimalScared(animalType);
+            }
+            StartCoroutine(FleeAndRespawnRoutine());
+        }
+
+        private System.Collections.IEnumerator FleeAndRespawnRoutine()
+        {
+            float elapsed = 0f;
+            Vector3 fleeDirection = (transform.position - player.position).normalized;
+            fleeDirection.y = 0.5f; // Slight upward trajectory for flight
+
+            while (elapsed < 2.0f)
+            {
+                elapsed += Time.deltaTime;
+
+                if (animalType == AnimalType.Stork || animalType == AnimalType.Butterfly)
                 {
-                    Destroy(gameObject);
+                    transform.Translate(new Vector3(fleeDirection.x, 1.2f, fleeDirection.z) * speed * 2.5f * Time.deltaTime, Space.World);
                 }
-                return;
+                else
+                {
+                    // Snake, Fish, Duck dive under water / swim away
+                    transform.Translate(new Vector3(fleeDirection.x, -0.6f, fleeDirection.z) * speed * 2.0f * Time.deltaTime, Space.World);
+                }
+
+                yield return null;
             }
 
-            if (player != null)
-            {
-                float dist = Vector3.Distance(transform.position, player.position);
-                bool playerIsCrouching = playerController != null && playerController.IsCrouching;
-                float scareDist = playerIsCrouching ? 4.0f : 8.5f;
+            // Hide the animal
+            SetVisualsEnabled(false);
 
-                if (dist < scareDist && !hasFled)
-                {
-                    isFleeing = true;
-                    hasFled = true;
-                    Debug.Log("[AnimalAI] Stork is scared and flies away!");
-                    if (Phase4Manager.Instance != null)
-                    {
-                        Phase4Manager.Instance.NotifyStorkScared();
-                    }
-                }
+            // Wait 6 seconds
+            yield return new WaitForSeconds(6.0f);
+
+            // Reset position and states
+            transform.position = startPos;
+            isFleeing = false;
+            hasFled = false;
+            actionTimer = 0f;
+
+            SetVisualsEnabled(true);
+        }
+
+        private void SetVisualsEnabled(bool enabled)
+        {
+            var r = GetComponent<Renderer>();
+            if (r != null) r.enabled = enabled;
+            foreach (var childRenderer in GetComponentsInChildren<Renderer>())
+            {
+                childRenderer.enabled = enabled;
             }
+            var c = GetComponent<Collider>();
+            if (c != null) c.enabled = enabled;
         }
 
         private void HandleSnake()

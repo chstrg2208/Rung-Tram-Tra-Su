@@ -76,12 +76,13 @@ namespace RungTramTraSu
             foreach (var animal in animals)
             {
                 if (animal == null) continue;
+                if (animal.HasFled) continue; // Bỏ qua nếu con vật đã bỏ chạy trốn mất
                 if (capturedAnimals.Contains(animal.Type)) continue;
 
                 Vector3 viewportPoint = playerCamera.WorldToViewportPoint(animal.transform.position);
                 bool inFrame = viewportPoint.z > 0 && 
-                              viewportPoint.x >= 0.2f && viewportPoint.x <= 0.8f && 
-                              viewportPoint.y >= 0.2f && viewportPoint.y <= 0.8f;
+                              viewportPoint.x >= 0.22f && viewportPoint.x <= 0.78f && 
+                              viewportPoint.y >= 0.22f && viewportPoint.y <= 0.78f;
 
                 if (inFrame)
                 {
@@ -161,12 +162,13 @@ namespace RungTramTraSu
             }
         }
 
-        public void NotifyStorkScared()
+        public void NotifyAnimalScared(AnimalAI.AnimalType type)
         {
-            if (storkWarningCooldown <= 0f && !capturedAnimals.Contains(AnimalAI.AnimalType.Stork))
+            if (storkWarningCooldown <= 0f && !capturedAnimals.Contains(type))
             {
-                storkWarningCooldown = 10f; // Prevent spamming
-                StartCoroutine(ShowTemporaryWarning("Ông Ngoại kêu: \"Con đi mạnh chân quá làm chim cò giật mình bay mất rồi kìa! Nhấn phím C để đi cúi người nhẹ nhàng thôi con!\"", 5f));
+                storkWarningCooldown = 8f; // Cooldown
+                string name = GetAnimalVietnameseName(type);
+                StartCoroutine(ShowTemporaryWarning($"Ông Ngoại kêu: \"Con đi mạnh chân quá làm {name} giật mình trốn mất rồi kìa! Nhấn phím C để Crouch (cúi người) đi rón rén thôi con!\"", 5f));
             }
         }
 

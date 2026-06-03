@@ -25,6 +25,7 @@ namespace RungTramTraSu
         [SerializeField] private GameObject cameraHandModel;       // Model máy ảnh trên tay người chơi
         [SerializeField] private Transform mangoTreeTarget;        // Cây xoài cần chụp
         [SerializeField] private GameObject boatTriggerZone;      // Vùng trigger trên xuồng gỗ
+        [SerializeField] private GameObject cameraPopupPanel;      // 3D Item Pop-up máy ảnh
         
         [Header("UI References")]
         [SerializeField] private TextMeshProUGUI objectiveText;    // Giao diện hiển thị mục tiêu
@@ -66,6 +67,26 @@ namespace RungTramTraSu
         /// </summary>
         public void GiveCameraToPlayer()
         {
+            if (cameraPopupPanel != null)
+            {
+                cameraPopupPanel.SetActive(true);
+                // Khóa di chuyển để xem pop-up
+                PlayerController player = FindAnyObjectByType<PlayerController>();
+                if (player != null) player.SetFrozen(true);
+            }
+            else
+            {
+                OnCloseCameraPopup();
+            }
+        }
+
+        public void OnCloseCameraPopup()
+        {
+            if (cameraPopupPanel != null) cameraPopupPanel.SetActive(false);
+
+            PlayerController player = FindAnyObjectByType<PlayerController>();
+            if (player != null) player.SetFrozen(false);
+
             currentState = Phase1State.TakingPhoto;
             
             // Hiện máy ảnh trên tay người chơi và mở khóa cơ chế ngắm/chụp
@@ -73,10 +94,23 @@ namespace RungTramTraSu
             if (photoCamera != null)
             {
                 photoCamera.UnlockCamera();
+                photoCamera.SetPhotoCategory("Phase1_Mango");
                 photoCamera.SetQuestTarget(mangoTreeTarget);
             }
 
             UpdateObjectiveText("Mục tiêu: Giữ Chuột Phải để ngắm, nhấn Chuột Trái để chụp ảnh Cây Xoài to trong vườn.");
+        }
+
+        private void Update()
+        {
+            if (cameraPopupPanel != null && cameraPopupPanel.activeSelf)
+            {
+                // Nhấn Space, Enter hoặc Click chuột để đóng pop-up máy ảnh
+                if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Mouse.current.leftButton.wasPressedThisFrame)
+                {
+                    OnCloseCameraPopup();
+                }
+            }
         }
 
         /// <summary>
@@ -100,7 +134,11 @@ namespace RungTramTraSu
             // Kích hoạt collider trigger trên xuồng gỗ để người chơi có thể bước xuống
             if (boatTriggerZone != null) boatTriggerZone.SetActive(true);
 
-            UpdateObjectiveText("Mục tiêu: Bước xuống chiếc xuồng gỗ đậu ở bến nước để bắt đầu khởi hành.");
+            // Cho Ông Ngoại đi bộ ra xuồng
+            NPCGrandpa grandpa = FindAnyObjectByType<NPCGrandpa>();
+            if (grandpa != null) grandpa.WalkToBoat();
+
+            UpdateObjectiveText("Mục tiêu: Đi theo Ông Ngoại ra bến nước và bước xuống xuồng gỗ.");
         }
 
         /// <summary>

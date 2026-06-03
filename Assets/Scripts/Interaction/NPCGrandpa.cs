@@ -79,5 +79,42 @@ namespace RungTramTraSu
                     break;
             }
         }
+
+        private bool isWalkingToBoat = false;
+        private Vector3 targetBoatPos = new Vector3(15.5f, -0.4f, 8.0f); // Sát bến xuồng
+        private float walkSpeed = 1.8f;
+
+        public void WalkToBoat()
+        {
+            isWalkingToBoat = true;
+        }
+
+        private void Update()
+        {
+            if (isWalkingToBoat)
+            {
+                float step = walkSpeed * Time.deltaTime;
+                Vector3 targetDir = targetBoatPos - transform.position;
+                targetDir.y = 0; // Giữ thăng bằng trục xoay ngang
+
+                if (targetDir.magnitude > 0.15f)
+                {
+                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(targetDir), 8.0f * Time.deltaTime);
+                    transform.position = Vector3.MoveTowards(transform.position, targetBoatPos, step);
+                }
+                else
+                {
+                    isWalkingToBoat = false;
+                    // Lên xuồng ngồi chờ sẵn
+                    GameObject boatObj = GameObject.Find("Sampan Boat");
+                    if (boatObj != null)
+                    {
+                        transform.SetParent(boatObj.transform, true);
+                        transform.localPosition = new Vector3(0f, 0.3f / 5f, 1.5f / 5f);
+                        transform.localRotation = Quaternion.identity;
+                    }
+                }
+            }
+        }
     }
 }

@@ -199,9 +199,9 @@ namespace RungTramTraSu
                 AddMeshCollidersRecursively(house);
             }
 
-            // 2. Ông Ngoại (Grandpa NPC) đứng ngay đầu bến cầu tàu gỗ (Tự động thích nghi cao độ mặt đất)
-            float grandpaY = GetHeightAt(13.0f, 8f);
-            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(13.0f, grandpaY, 8f), Quaternion.Euler(0, 90, 0));
+            // 2. Ông Ngoại (Grandpa NPC) đứng ngay hiên nhà
+            float grandpaY = GetHeightAt(-1.0f, 0f);
+            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(-1.0f, grandpaY, 0f), Quaternion.Euler(0, 135f, 0));
             if (grandpa != null)
             {
                 grandpa.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
@@ -400,6 +400,43 @@ namespace RungTramTraSu
                 reed.GetComponent<Renderer>().sharedMaterial = reedMat;
             }
 
+            // --- SINH HÀNH LANG LỐI ĐI VỚI HÀNG SẬY / CỎ VEN BỜ (PATH CORRIDOR REEDS) ---
+            GameObject pathCorridor = new GameObject("PathReedsCorridor");
+            Material pathReedMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            pathReedMat.color = new Color(0.2f, 0.4f, 0.15f);
+            if (pathReedMat.HasProperty("_Smoothness")) pathReedMat.SetFloat("_Smoothness", 0.05f);
+
+            for (float x = -1f; x <= 13f; x += 0.4f)
+            {
+                float zPath = 8f * (x + 1f) / 14f;
+                // Add some slight randomness
+                float xOffset = Random.Range(-0.1f, 0.1f);
+                float zOffset1 = Random.Range(-0.15f, 0.15f) + 1.6f;
+                float zOffset2 = Random.Range(-0.15f, 0.15f) - 1.6f;
+
+                // Left row of reeds (positive offset)
+                GameObject reedLeft = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                reedLeft.name = $"PathReed_L_{x}";
+                reedLeft.transform.SetParent(pathCorridor.transform);
+                float h1 = Random.Range(1.5f, 2.5f);
+                float y1 = GetHeightAt(x + xOffset, zPath + zOffset1);
+                reedLeft.transform.position = new Vector3(x + xOffset, y1 + h1 * 0.5f - 0.1f, zPath + zOffset1);
+                reedLeft.transform.localScale = new Vector3(0.06f, h1, 0.06f);
+                DestroyImmediate(reedLeft.GetComponent<Collider>());
+                reedLeft.GetComponent<Renderer>().sharedMaterial = pathReedMat;
+
+                // Right row of reeds (negative offset)
+                GameObject reedRight = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                reedRight.name = $"PathReed_R_{x}";
+                reedRight.transform.SetParent(pathCorridor.transform);
+                float h2 = Random.Range(1.5f, 2.5f);
+                float y2 = GetHeightAt(x + xOffset, zPath + zOffset2);
+                reedRight.transform.position = new Vector3(x + xOffset, y2 + h2 * 0.5f - 0.1f, zPath + zOffset2);
+                reedRight.transform.localScale = new Vector3(0.06f, h2, 0.06f);
+                DestroyImmediate(reedRight.GetComponent<Collider>());
+                reedRight.GetComponent<Renderer>().sharedMaterial = pathReedMat;
+            }
+
 
             // --- THIẾT LẬP NHÂN VẬT CHƠI (PLAYER & CAMERA) ---
 
@@ -457,174 +494,13 @@ namespace RungTramTraSu
 
 
             // --- XÂY DỰNG GIAO DIỆN (UI CANVASES) ---
+            GameObject gameUI = CreateBaseGameUI(photoCam, cameraHandModel, out TextMeshProUGUI objText);
 
-            GameObject gameUI = new GameObject("GameUI");
-            var canvas = gameUI.AddComponent<Canvas>();
-            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            gameUI.AddComponent<CanvasScaler>();
-            gameUI.AddComponent<GraphicRaycaster>();
-            
-            var interactUI = gameUI.AddComponent<InteractionUI>();
-
-            GameObject promptPanel = new GameObject("InteractionPromptPanel");
-            promptPanel.transform.SetParent(gameUI.transform, false);
-            var promptRect = promptPanel.AddComponent<RectTransform>();
-            promptRect.anchorMin = new Vector2(0.5f, 0.5f);
-            promptRect.anchorMax = new Vector2(0.5f, 0.5f);
-            promptRect.pivot = new Vector2(0.5f, 0.5f);
-            promptRect.anchoredPosition = new Vector2(0, -60);
-            promptRect.sizeDelta = new Vector2(400, 50);
-
-            var promptText = promptPanel.AddComponent<TextMeshProUGUI>();
-            promptText.alignment = TextAlignmentOptions.Center;
-            promptText.fontSize = 20;
-            promptText.color = Color.yellow;
-            promptText.text = "[E] Nói chuyện";
-
-            SerializedObject serIntUI = new SerializedObject(interactUI);
-            serIntUI.FindProperty("promptPanel").objectReferenceValue = promptPanel;
-            serIntUI.FindProperty("promptText").objectReferenceValue = promptText;
-            serIntUI.ApplyModifiedProperties();
-
-            GameObject objTextObj = new GameObject("ObjectiveText");
-            objTextObj.transform.SetParent(gameUI.transform, false);
-            var objRect = objTextObj.AddComponent<RectTransform>();
-            objRect.anchorMin = new Vector2(0.5f, 1f);
-            objRect.anchorMax = new Vector2(0.5f, 1f);
-            objRect.pivot = new Vector2(0.5f, 1f);
-            objRect.anchoredPosition = new Vector2(0, -40);
-            objRect.sizeDelta = new Vector2(800, 60);
-
-            var objText = objTextObj.AddComponent<TextMeshProUGUI>();
-            objText.alignment = TextAlignmentOptions.Center;
-            objText.fontSize = 22;
-            objText.color = Color.white;
-            objText.text = "Mục tiêu: Đang cập nhật...";
-
-            GameObject viewfinderCanvas = new GameObject("ViewfinderCanvas");
-            viewfinderCanvas.transform.SetParent(gameUI.transform, false);
-            var vfRect = viewfinderCanvas.AddComponent<RectTransform>();
-            vfRect.anchorMin = Vector2.zero;
-            vfRect.anchorMax = Vector2.one;
-            vfRect.sizeDelta = Vector2.zero;
-
-            GameObject borderObj = new GameObject("ViewfinderBorder");
-            borderObj.transform.SetParent(viewfinderCanvas.transform, false);
-            var borderRect = borderObj.AddComponent<RectTransform>();
-            borderRect.anchorMin = Vector2.zero;
-            borderRect.anchorMax = Vector2.one;
-            borderRect.sizeDelta = Vector2.zero;
-            var borderImg = borderObj.AddComponent<Image>();
-            borderImg.color = new Color(0, 0, 0, 0.4f);
-
-            GameObject recTextObj = new GameObject("RECText");
-            recTextObj.transform.SetParent(viewfinderCanvas.transform, false);
-            var recRect = recTextObj.AddComponent<RectTransform>();
-            recRect.anchorMin = new Vector2(0.1f, 0.9f);
-            recRect.anchorMax = new Vector2(0.1f, 0.9f);
-            recRect.anchoredPosition = Vector2.zero;
-            recRect.sizeDelta = new Vector2(100, 30);
-            var recText = recTextObj.AddComponent<TextMeshProUGUI>();
-            recText.text = "● REC";
-            recText.color = Color.red;
-            recText.fontSize = 20;
-
-            GameObject flashObj = new GameObject("FlashImage");
-            flashObj.transform.SetParent(gameUI.transform, false);
-            var flashRect = flashObj.AddComponent<RectTransform>();
-            flashRect.anchorMin = Vector2.zero;
-            flashRect.anchorMax = Vector2.one;
-            flashRect.sizeDelta = Vector2.zero;
-            var flashImg = flashObj.AddComponent<Image>();
-            flashImg.color = new Color(1, 1, 1, 0);
-
-            SerializedObject serCam = new SerializedObject(photoCam);
-            serCam.FindProperty("viewfinderCanvas").objectReferenceValue = viewfinderCanvas;
-            serCam.FindProperty("flashImage").objectReferenceValue = flashImg;
-            serCam.FindProperty("normalFOV").floatValue = 60f;
-            serCam.FindProperty("zoomFOV").floatValue = 30f;
-            serCam.FindProperty("occlusionLayers").intValue = 1 << 0;
-            serCam.ApplyModifiedProperties();
+            Transform popupTrans = gameUI.transform.Find("CameraPopupPanel");
+            GameObject cameraPopupPanel = popupTrans != null ? popupTrans.gameObject : null;
 
             GameObject managersObj = new GameObject("Managers");
             var diagManager = managersObj.AddComponent<DialogueManager>();
-
-            GameObject diagPanel = new GameObject("DialoguePanel");
-            diagPanel.transform.SetParent(gameUI.transform, false);
-            var diagRect = diagPanel.AddComponent<RectTransform>();
-            diagRect.anchorMin = new Vector2(0.5f, 0f);
-            diagRect.anchorMax = new Vector2(0.5f, 0f);
-            diagRect.pivot = new Vector2(0.5f, 0f);
-            diagRect.anchoredPosition = new Vector2(0, 30);
-            diagRect.sizeDelta = new Vector2(700, 160);
-            var diagImg = diagPanel.AddComponent<Image>();
-            diagImg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
-
-            GameObject speakerTextObj = new GameObject("SpeakerNameText");
-            speakerTextObj.transform.SetParent(diagPanel.transform, false);
-            var spkRect = speakerTextObj.AddComponent<RectTransform>();
-            spkRect.anchorMin = new Vector2(0f, 1f);
-            spkRect.anchorMax = new Vector2(0f, 1f);
-            spkRect.pivot = new Vector2(0f, 1f);
-            spkRect.anchoredPosition = new Vector2(15, -10);
-            spkRect.sizeDelta = new Vector2(200, 30);
-            var spkText = speakerTextObj.AddComponent<TextMeshProUGUI>();
-            spkText.fontSize = 20;
-            spkText.color = Color.green;
-            spkText.text = "Ông Ngoại";
-
-            GameObject dialogueTextObj = new GameObject("DialogueText");
-            dialogueTextObj.transform.SetParent(diagPanel.transform, false);
-            var textRect = dialogueTextObj.AddComponent<RectTransform>();
-            textRect.anchorMin = new Vector2(0f, 0f);
-            textRect.anchorMax = new Vector2(1f, 1f);
-            textRect.offsetMin = new Vector2(15, 15);
-            textRect.offsetMax = new Vector2(-15, -45);
-            var diagTextComp = dialogueTextObj.AddComponent<TextMeshProUGUI>();
-            diagTextComp.fontSize = 18;
-            diagTextComp.color = Color.white;
-            diagTextComp.text = "Đang chạy lời thoại...";
-
-            GameObject continueIndicator = new GameObject("ContinueIndicator");
-            continueIndicator.transform.SetParent(diagPanel.transform, false);
-            var cntRect = continueIndicator.AddComponent<RectTransform>();
-            cntRect.anchorMin = new Vector2(1f, 0f);
-            cntRect.anchorMax = new Vector2(1f, 0f);
-            cntRect.pivot = new Vector2(1f, 0f);
-            cntRect.anchoredPosition = new Vector2(-15, 10);
-            cntRect.sizeDelta = new Vector2(120, 25);
-            var cntText = continueIndicator.AddComponent<TextMeshProUGUI>();
-            cntText.fontSize = 14;
-            cntText.color = Color.gray;
-            cntText.text = "[Click / Space] Tiếp tục";
-
-            SerializedObject serDiag = new SerializedObject(diagManager);
-            serDiag.FindProperty("dialoguePanel").objectReferenceValue = diagPanel;
-            serDiag.FindProperty("speakerNameText").objectReferenceValue = spkText;
-            serDiag.FindProperty("dialogueText").objectReferenceValue = diagTextComp;
-            serDiag.FindProperty("continueIndicator").objectReferenceValue = continueIndicator;
-            serDiag.ApplyModifiedProperties();
-
-            GameObject faderCanvasObj = new GameObject("FaderCanvas");
-            var faderCanvas = faderCanvasObj.AddComponent<Canvas>();
-            faderCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            faderCanvas.sortingOrder = 999;
-            faderCanvasObj.AddComponent<CanvasScaler>();
-            faderCanvasObj.AddComponent<GraphicRaycaster>();
-            var screenFader = faderCanvasObj.AddComponent<ScreenFader>();
-
-            GameObject fadeImgObj = new GameObject("FadeImage");
-            fadeImgObj.transform.SetParent(faderCanvasObj.transform, false);
-            var fimgRect = fadeImgObj.AddComponent<RectTransform>();
-            fimgRect.anchorMin = Vector2.zero;
-            fimgRect.anchorMax = Vector2.one;
-            fimgRect.sizeDelta = Vector2.zero;
-            var fImg = fadeImgObj.AddComponent<Image>();
-            fImg.color = Color.black;
-
-            SerializedObject serFade = new SerializedObject(screenFader);
-            serFade.FindProperty("fadeImage").objectReferenceValue = fImg;
-            serFade.ApplyModifiedProperties();
 
             // 10. Tạo Phase1Manager
             var phaseManager = managersObj.AddComponent<Phase1Manager>();
@@ -640,6 +516,7 @@ namespace RungTramTraSu
             {
                 serPhase.FindProperty("boatTriggerZone").objectReferenceValue = boatTriggerZone;
             }
+            serPhase.FindProperty("cameraPopupPanel").objectReferenceValue = cameraPopupPanel;
             serPhase.FindProperty("objectiveText").objectReferenceValue = objText;
             serPhase.ApplyModifiedProperties();
 
@@ -1439,8 +1316,17 @@ namespace RungTramTraSu
 
             GameObject gameUI = CreateBaseGameUI(photoCam, cameraHandModel, out TextMeshProUGUI objText);
 
-            // Grandpa NPC
-            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(startX + 1f, -0.42f, -43f), Quaternion.identity);
+            // Chiếc xuồng ba lá (Sampan Boat) neo sát bến để tự động trôi dọc kênh
+            GameObject boat = LoadAndInstantiate("Assets/Models/VietnameseBoat/mô+hình+thuyền+sampan+gỗ+3d.glb", "Sampan Boat", new Vector3(startX - 3.5f, -0.82f, -45f), Quaternion.identity);
+            if (boat != null)
+            {
+                boat.transform.localScale = new Vector3(5f, 5f, 5f);
+                SetupPerfectBoatCollider(boat);
+                boat.AddComponent<WaterFloat>();
+            }
+
+            // Grandpa NPC đứng trên thuyền
+            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(startX - 3.5f, -0.42f, -43f), Quaternion.identity);
             if (grandpa != null)
             {
                 grandpa.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
@@ -1448,7 +1334,12 @@ namespace RungTramTraSu
                 col.center = new Vector3(0, 0.9f, 0);
                 col.radius = 0.35f;
                 col.height = 1.8f;
-                grandpa.AddComponent<GrandpaAI>();
+                if (boat != null)
+                {
+                    grandpa.transform.SetParent(boat.transform, true);
+                    grandpa.transform.localPosition = new Vector3(0f, 0.35f / 5f, 1.2f / 5f);
+                    grandpa.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                }
             }
 
             // Managers
@@ -1457,11 +1348,10 @@ namespace RungTramTraSu
             var p3Manager = managersObj.AddComponent<Phase3Manager>();
 
             var serPhase3 = new SerializedObject(p3Manager);
-            serPhase3.FindProperty("grandpa").objectReferenceValue = grandpa.GetComponent<GrandpaAI>();
+            serPhase3.FindProperty("boat").objectReferenceValue = boat != null ? boat.transform : null;
             serPhase3.FindProperty("player").objectReferenceValue = player.transform;
             serPhase3.FindProperty("objectiveText").objectReferenceValue = objText;
             serPhase3.FindProperty("photoCamera").objectReferenceValue = photoCam;
-            serPhase3.FindProperty("rootTarget").objectReferenceValue = rootGroup.transform;
             serPhase3.ApplyModifiedProperties();
 
             SetupPostProcessingAndFog(camObj);
@@ -2186,6 +2076,8 @@ namespace RungTramTraSu
             serFade.FindProperty("fadeImage").objectReferenceValue = fImg;
             serFade.ApplyModifiedProperties();
 
+            BuildDiaryAndPopupUI(gameUI);
+
             return gameUI;
         }
 
@@ -2226,6 +2118,199 @@ namespace RungTramTraSu
             vignette.rounded.Override(true);
 
             volume.sharedProfile = profile;
+        }
+
+        private static void BuildDiaryAndPopupUI(GameObject gameUI)
+        {
+            // 1. Build Camera Popup UI
+            GameObject cameraPopupPanel = new GameObject("CameraPopupPanel");
+            cameraPopupPanel.transform.SetParent(gameUI.transform, false);
+            cameraPopupPanel.SetActive(false);
+            
+            var popupRect = cameraPopupPanel.AddComponent<RectTransform>();
+            popupRect.anchorMin = new Vector2(0.5f, 0.5f);
+            popupRect.anchorMax = new Vector2(0.5f, 0.5f);
+            popupRect.pivot = new Vector2(0.5f, 0.5f);
+            popupRect.anchoredPosition = Vector2.zero;
+            popupRect.sizeDelta = new Vector2(450, 300);
+
+            var popupBg = cameraPopupPanel.AddComponent<Image>();
+            popupBg.color = new Color(0.12f, 0.12f, 0.12f, 0.95f);
+
+            // Title
+            GameObject titleObj = new GameObject("TitleText");
+            titleObj.transform.SetParent(cameraPopupPanel.transform, false);
+            var titleRect = titleObj.AddComponent<RectTransform>();
+            titleRect.anchorMin = new Vector2(0.5f, 1f);
+            titleRect.anchorMax = new Vector2(0.5f, 1f);
+            titleRect.pivot = new Vector2(0.5f, 1f);
+            titleRect.anchoredPosition = new Vector2(0, -25);
+            titleRect.sizeDelta = new Vector2(400, 40);
+            var titleText = titleObj.AddComponent<TextMeshProUGUI>();
+            titleText.text = "NHẬN MÁY ẢNH PHIM CŨ";
+            titleText.fontSize = 22;
+            titleText.fontStyle = FontStyles.Bold;
+            titleText.color = Color.yellow;
+            titleText.alignment = TextAlignmentOptions.Center;
+
+            // Description
+            GameObject descObj = new GameObject("DescText");
+            descObj.transform.SetParent(cameraPopupPanel.transform, false);
+            var descRect = descObj.AddComponent<RectTransform>();
+            descRect.anchorMin = new Vector2(0.5f, 0.5f);
+            descRect.anchorMax = new Vector2(0.5f, 0.5f);
+            descRect.pivot = new Vector2(0.5f, 0.5f);
+            descRect.anchoredPosition = new Vector2(0, -10);
+            descRect.sizeDelta = new Vector2(380, 120);
+            var descText = descObj.AddComponent<TextMeshProUGUI>();
+            descText.text = "Máy ảnh phim cũ ba mua hồi năm ngoái. Vẫn còn xài tốt nhưng ống kính hơi rít...\n\nSử dụng phím [Chuột Phải] để ngắm, [Chuột Trái] để chụp hình.\nNhấn [Tab] hoặc [I] để mở Sổ Nhật Ký.";
+            descText.fontSize = 16;
+            descText.color = Color.white;
+            descText.alignment = TextAlignmentOptions.Center;
+
+            // Button hint
+            GameObject hintObj = new GameObject("HintText");
+            hintObj.transform.SetParent(cameraPopupPanel.transform, false);
+            var hintRect = hintObj.AddComponent<RectTransform>();
+            hintRect.anchorMin = new Vector2(0.5f, 0f);
+            hintRect.anchorMax = new Vector2(0.5f, 0f);
+            hintRect.pivot = new Vector2(0.5f, 0f);
+            hintRect.anchoredPosition = new Vector2(0, 20);
+            hintRect.sizeDelta = new Vector2(400, 30);
+            var hintText = hintObj.AddComponent<TextMeshProUGUI>();
+            hintText.text = "[Chuột Trái / Space] Đóng";
+            hintText.fontSize = 14;
+            hintText.color = Color.gray;
+            hintText.alignment = TextAlignmentOptions.Center;
+
+
+            // 2. Build Sổ Nhật Ký (Diary UI)
+            GameObject diaryPanel = new GameObject("DiaryPanel");
+            diaryPanel.transform.SetParent(gameUI.transform, false);
+            diaryPanel.SetActive(false);
+            
+            var diaryRect = diaryPanel.AddComponent<RectTransform>();
+            diaryRect.anchorMin = Vector2.zero;
+            diaryRect.anchorMax = Vector2.one;
+            diaryRect.sizeDelta = Vector2.zero;
+            
+            var diaryBg = diaryPanel.AddComponent<Image>();
+            diaryBg.color = new Color(0.08f, 0.08f, 0.08f, 0.96f);
+
+            // Title
+            GameObject dTitleObj = new GameObject("DiaryTitle");
+            dTitleObj.transform.SetParent(diaryPanel.transform, false);
+            var dTitleRect = dTitleObj.AddComponent<RectTransform>();
+            dTitleRect.anchorMin = new Vector2(0.5f, 1f);
+            dTitleRect.anchorMax = new Vector2(0.5f, 1f);
+            dTitleRect.pivot = new Vector2(0.5f, 1f);
+            dTitleRect.anchoredPosition = new Vector2(0, -30);
+            dTitleRect.sizeDelta = new Vector2(600, 50);
+            var dTitleText = dTitleObj.AddComponent<TextMeshProUGUI>();
+            dTitleText.text = "SỔ NHẬT KÝ HÀNH TRÌNH TRÀ SƯ";
+            dTitleText.fontSize = 28;
+            dTitleText.fontStyle = FontStyles.Bold;
+            dTitleText.color = new Color(0.95f, 0.85f, 0.6f);
+            dTitleText.alignment = TextAlignmentOptions.Center;
+
+            // Inventory Item Icon (Camera)
+            GameObject cameraInvObj = new GameObject("CameraInventoryIcon");
+            cameraInvObj.transform.SetParent(diaryPanel.transform, false);
+            var camInvRect = cameraInvObj.AddComponent<RectTransform>();
+            camInvRect.anchorMin = new Vector2(1f, 1f);
+            camInvRect.anchorMax = new Vector2(1f, 1f);
+            camInvRect.pivot = new Vector2(1f, 1f);
+            camInvRect.anchoredPosition = new Vector2(-40, -40);
+            camInvRect.sizeDelta = new Vector2(120, 50);
+            
+            var camInvBg = cameraInvObj.AddComponent<Image>();
+            camInvBg.color = new Color(0.2f, 0.3f, 0.2f, 0.8f);
+            
+            GameObject camInvTextObj = new GameObject("Text");
+            camInvTextObj.transform.SetParent(cameraInvObj.transform, false);
+            var camInvTextRect = camInvTextObj.AddComponent<RectTransform>();
+            camInvTextRect.anchorMin = Vector2.zero;
+            camInvTextRect.anchorMax = Vector2.one;
+            camInvTextRect.sizeDelta = Vector2.zero;
+            var camInvText = camInvTextObj.AddComponent<TextMeshProUGUI>();
+            camInvText.text = "📷 MÁY ẢNH";
+            camInvText.fontSize = 16;
+            camInvText.color = Color.white;
+            camInvText.alignment = TextAlignmentOptions.Center;
+
+            var diaryController = diaryPanel.AddComponent<DiaryUIController>();
+
+            // Polaroid slot instantiator helper
+            System.Func<string, Vector2, GameObject> createPolaroidSlot = (label, pos) => {
+                GameObject slot = new GameObject("Polaroid_" + label);
+                slot.transform.SetParent(diaryPanel.transform, false);
+                var r = slot.AddComponent<RectTransform>();
+                r.anchorMin = new Vector2(0.5f, 0.5f);
+                r.anchorMax = new Vector2(0.5f, 0.5f);
+                r.pivot = new Vector2(0.5f, 0.5f);
+                r.anchoredPosition = pos;
+                r.sizeDelta = new Vector2(140, 170);
+
+                var img = slot.AddComponent<Image>();
+                img.color = Color.white; // Polaroid white frame
+
+                GameObject photoObj = new GameObject("Photo");
+                photoObj.transform.SetParent(slot.transform, false);
+                var photoRect = photoObj.AddComponent<RectTransform>();
+                photoRect.anchorMin = new Vector2(0.5f, 1f);
+                photoRect.anchorMax = new Vector2(0.5f, 1f);
+                photoRect.pivot = new Vector2(0.5f, 1f);
+                photoRect.anchoredPosition = new Vector2(0, -8);
+                photoRect.sizeDelta = new Vector2(124, 124);
+                var raw = photoObj.AddComponent<RawImage>();
+
+                GameObject labelObj = new GameObject("Label");
+                labelObj.transform.SetParent(slot.transform, false);
+                var labelRect = labelObj.AddComponent<RectTransform>();
+                labelRect.anchorMin = new Vector2(0.5f, 0f);
+                labelRect.anchorMax = new Vector2(0.5f, 0f);
+                labelRect.pivot = new Vector2(0.5f, 0f);
+                labelRect.anchoredPosition = new Vector2(0, 6);
+                labelRect.sizeDelta = new Vector2(124, 25);
+                var lblTxt = labelObj.AddComponent<TextMeshProUGUI>();
+                lblTxt.text = label;
+                lblTxt.fontSize = 11;
+                lblTxt.color = Color.black;
+                lblTxt.fontStyle = FontStyles.Bold;
+                lblTxt.alignment = TextAlignmentOptions.Center;
+
+                return photoObj; // return photo raw image object
+            };
+
+            // Layout row 1: 4 photos
+            RawImage rPhase1Mango = createPolaroidSlot("Cây Xoài Nhiệm Vụ", new Vector2(-300, 100)).GetComponent<RawImage>();
+            RawImage rPhase2Ch1 = createPolaroidSlot("Đàn Chim Điểm 1", new Vector2(-100, 100)).GetComponent<RawImage>();
+            RawImage rPhase2Ch2 = createPolaroidSlot("Đàn Chim Điểm 2", new Vector2(100, 100)).GetComponent<RawImage>();
+            RawImage rPhase2Ch3 = createPolaroidSlot("Đàn Chim Điểm 3", new Vector2(300, 100)).GetComponent<RawImage>();
+
+            // Layout row 2: 6 photos (smaller spacing)
+            RawImage rPhase4Stork = createPolaroidSlot("Cò Trắng", new Vector2(-375, -120)).GetComponent<RawImage>();
+            RawImage rPhase4Snake = createPolaroidSlot("Rắn Nước", new Vector2(-225, -120)).GetComponent<RawImage>();
+            RawImage rPhase4Fish = createPolaroidSlot("Cá Lóc Trà Sư", new Vector2(-75, -120)).GetComponent<RawImage>();
+            RawImage rPhase4Butterfly = createPolaroidSlot("Bướm Tràm", new Vector2(75, -120)).GetComponent<RawImage>();
+            RawImage rPhase4Duck = createPolaroidSlot("Vịt Trời", new Vector2(225, -120)).GetComponent<RawImage>();
+            RawImage rPhase5Sunset = createPolaroidSlot("Hoàng Hôn Trà Sư", new Vector2(375, -120)).GetComponent<RawImage>();
+
+            // Link to DiaryUIController
+            SerializedObject serController = new SerializedObject(diaryController);
+            serController.FindProperty("diaryPanel").objectReferenceValue = diaryPanel;
+            serController.FindProperty("imgPhase1Mango").objectReferenceValue = rPhase1Mango;
+            serController.FindProperty("imgPhase2Ch1").objectReferenceValue = rPhase2Ch1;
+            serController.FindProperty("imgPhase2Ch2").objectReferenceValue = rPhase2Ch2;
+            serController.FindProperty("imgPhase2Ch3").objectReferenceValue = rPhase2Ch3;
+            serController.FindProperty("imgPhase4Stork").objectReferenceValue = rPhase4Stork;
+            serController.FindProperty("imgPhase4Snake").objectReferenceValue = rPhase4Snake;
+            serController.FindProperty("imgPhase4Fish").objectReferenceValue = rPhase4Fish;
+            serController.FindProperty("imgPhase4Butterfly").objectReferenceValue = rPhase4Butterfly;
+            serController.FindProperty("imgPhase4Duck").objectReferenceValue = rPhase4Duck;
+            serController.FindProperty("imgPhase5Sunset").objectReferenceValue = rPhase5Sunset;
+            serController.FindProperty("cameraInventoryIcon").objectReferenceValue = cameraInvObj;
+            serController.ApplyModifiedProperties();
         }
 
         private static void CreateLotusFlower(Vector3 position, Transform parent)

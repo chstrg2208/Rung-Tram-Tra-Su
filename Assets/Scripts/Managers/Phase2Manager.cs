@@ -30,6 +30,15 @@ namespace RungTramTraSu
         private bool event1Triggered = false;
         private bool event2Triggered = false;
 
+        private bool isAtCheckpoint = false;
+        private int birdsCapturedAtCurrentCheckpoint = 0;
+        private List<GameObject> activeBirds = new List<GameObject>();
+        private int currentCheckpoint = 0; // 0, 1, 2, 3
+        private Coroutine flightCoroutine;
+        private bool checkpoint1Triggered = false;
+        private bool checkpoint2Triggered = false;
+        private bool checkpoint3Triggered = false;
+
         private void Awake()
         {
             if (Instance == null) Instance = this;
@@ -96,6 +105,15 @@ namespace RungTramTraSu
                 MoveBoat();
                 CheckEvents();
             }
+
+            // Kiểm tra ngắm bắn chim khi đang dừng ở Checkpoint
+            if (isAtCheckpoint && Mouse.current.leftButton.wasPressedThisFrame && photoCamera != null)
+            {
+                if (photoCamera.IsZooming)
+                {
+                    CheckBirdCapture();
+                }
+            }
         }
 
         private void MoveBoat()
@@ -128,82 +146,187 @@ namespace RungTramTraSu
         {
             float z = boat.position.z;
 
-            // Event 1: Sunshine Ray through canopy (z around -20m)
-            if (!event1Triggered && z >= -22f && z < 0f)
+            // Checkpoint 1: Z = -20f (Tốc độ Chậm)
+            if (!checkpoint1Triggered && z >= -20f && z < -10f)
             {
-                event1Triggered = true;
-                if (photoCamera != null)
-                {
-                    photoCamera.UnlockCamera();
-                    photoCamera.SetQuestTarget(sunRayTarget);
-                }
-                photoCaptured = false;
-                UpdateObjectiveText("Nhiệm vụ: Chụp ảnh Vạt nắng vàng rực rỡ xuyên qua tán lá tràm phía trước.");
-                DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
-                    "Ngước lên coi kìa con! Vạt nắng vàng xuyên qua kẽ lá nhìn đẹp quá trời đất kìa!",
-                    "Con lấy máy ra bấm chụp một tấm kỷ niệm đi con!"
-                });
+                checkpoint1Triggered = true;
+                TriggerCheckpoint(1, 1.8f, "Phase2_Ch1", "Nhấn chuột phải ngắm, trái chụp 3 con chim bay (Tốc độ CHẬM).");
             }
 
-            // Event 2: Storks fly (z around 15m)
-            if (!event2Triggered && z >= 15f && z < 35f)
+            // Checkpoint 2: Z = 15f (Tốc độ Vừa)
+            if (!checkpoint2Triggered && z >= 15f && z < 25f)
             {
-                event2Triggered = true;
-                if (storksFlock != null) storksFlock.SetActive(true);
-                // Start storks flight animation
-                StartCoroutine(StorksFlightRoutine());
-                
-                if (photoCamera != null)
-                {
-                    photoCamera.UnlockCamera();
-                    photoCamera.SetQuestTarget(storkTarget);
-                }
-                photoCaptured = false;
-                UpdateObjectiveText("Nhiệm vụ: Nhanh tay chụp ảnh Đàn cò trắng đang bay lướt qua bầu trời kênh.");
-                DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
-                    "Kìa! Đàn cò trắng kìa con! Tụi nó bay lướt ngang kênh đó. Chụp lẹ tay đi con!"
-                });
+                checkpoint2Triggered = true;
+                TriggerCheckpoint(2, 4.0f, "Phase2_Ch2", "Nhấn chuột phải ngắm, trái chụp 3 con chim bay (Tốc độ VỪA).");
+            }
+
+            // Checkpoint 3: Z = 40f (Tốc độ Nhanh)
+            if (!checkpoint3Triggered && z >= 40f && z < 48f)
+            {
+                checkpoint3Triggered = true;
+                TriggerCheckpoint(3, 7.5f, "Phase2_Ch3", "Nhấn chuột phải ngắm, trái chụp 3 con chim bay (Tốc độ NHANH).");
             }
         }
 
-        private IEnumerator StorksFlightRoutine()
+        private void TriggerCheckpoint(int number, float birdSpeed, string category, string instructionText)
         {
-            float elapsed = 0f;
-            float duration = 12f;
-            Vector3 startPos = new Vector3(8f, 10f, 40f);
-            Vector3 endPos = new Vector3(45f, 15f, 15f);
-            if (storksFlock != null)
+            isTravelling = false;
+            isAtCheckpoint = true;
+            currentCheckpoint = number;
+            birdsCapturedAtCurrentCheckpoint = 0;
+
+            if (photoCamera != null)
             {
-                storksFlock.transform.position = startPos;
-                while (elapsed < duration)
+                photoCamera.UnlockCamera();
+                photoCamera.SetPhotoCategory(category);
+            }
+
+            UpdateObjectiveText($"Checkpoint {number}: {instructionText} (0/3)");
+
+            string speedText = number == 1 ? "từ từ thong thả" : (number == 2 ? "bay hơi nhanh hơn chút" : "bay rất nhanh lướt qua");
+            DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
+                $"Tới Checkpoint {number} rồi nè con. Chim sáp sửa bay ngang qua đó con.",
+                $"Đợt này chim sẽ bay {speedText}. Con lấy máy ảnh ra sẵn đi, ngắm sẵn rồi chụp nghe!"
+            });
+
+            // Sinh đàn chim và bắt đầu bay
+            SpawnBirdFlock(boat.position.z);
+            if (flightCoroutine != null) StopCoroutine(flightCoroutine);
+            flightCoroutine = StartCoroutine(FlightRoutine(birdSpeed, boat.position.z));
+        }
+
+        private void SpawnBirdFlock(float zCenter)
+        {
+            ClearActiveBirds();
+
+            for (int i = 0; i < 6; i++)
+            {
+                GameObject bird = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                bird.name = "Stork_Bird_" + i;
+                bird.transform.position = new Vector3(8f + Random.Range(-2f, 2f), 8f + Random.Range(-1.5f, 1.5f), zCenter + 15f + Random.Range(-2f, 2f));
+                bird.transform.localScale = new Vector3(0.7f, 0.15f, 0.5f);
+                
+                Material birdMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                birdMat.color = Color.white;
+                bird.GetComponent<Renderer>().sharedMaterial = birdMat;
+                
+                // Set tag and remove collider to avoid collision but keep detectable
+                bird.tag = "Interactable";
+                DestroyImmediate(bird.GetComponent<Collider>());
+                
+                // Add simple sphere collider for viewport checks if needed, but not required
+                activeBirds.Add(bird);
+            }
+        }
+
+        private void ClearActiveBirds()
+        {
+            foreach (var bird in activeBirds)
+            {
+                if (bird != null) Destroy(bird);
+            }
+            activeBirds.Clear();
+        }
+
+        private IEnumerator FlightRoutine(float speed, float zCenter)
+        {
+            while (isAtCheckpoint)
+            {
+                float t = 0f;
+                float duration = 28f / speed;
+
+                // Reset positions to start (left side of canal)
+                for (int i = 0; i < activeBirds.Count; i++)
                 {
-                    elapsed += Time.deltaTime;
-                    storksFlock.transform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
-                    storksFlock.transform.Rotate(Vector3.up * 5f * Time.deltaTime);
+                    if (activeBirds[i] != null)
+                    {
+                        activeBirds[i].transform.position = new Vector3(10f - i * 0.8f, 7f + Mathf.PingPong(i, 2f), zCenter + 16f + Random.Range(-1f, 1f));
+                        activeBirds[i].SetActive(true);
+                    }
+                }
+
+                // Fly left-to-right crossing the canal in front of the boat
+                while (t < duration && isAtCheckpoint)
+                {
+                    t += Time.deltaTime;
+                    float progress = t / duration;
+
+                    for (int i = 0; i < activeBirds.Count; i++)
+                    {
+                        if (activeBirds[i] != null)
+                        {
+                            float curX = Mathf.Lerp(10f - i * 0.8f, 38f, progress);
+                            float curY = 7f + Mathf.PingPong(i + Time.time, 2.5f);
+                            float curZ = zCenter + 16f - progress * 4f;
+                            activeBirds[i].transform.position = new Vector3(curX, curY, curZ);
+                        }
+                    }
                     yield return null;
                 }
+
+                yield return new WaitForSeconds(0.8f); // Dừng ngắn trước khi lặp lại bay tiếp
             }
+        }
+
+        private void CheckBirdCapture()
+        {
+            if (activeBirds.Count == 0) return;
+            Camera cam = Camera.main;
+            if (cam == null) return;
+
+            int hits = 0;
+            List<GameObject> capturedThisFrame = new List<GameObject>();
+
+            foreach (var bird in activeBirds)
+            {
+                if (bird == null) continue;
+                Vector3 vp = cam.WorldToViewportPoint(bird.transform.position);
+                
+                // Hỗ trợ chụp ở khu vực trung tâm ống ngắm (Viewport [0.3, 0.7])
+                if (vp.z > 0 && vp.x >= 0.28f && vp.x <= 0.72f && vp.y >= 0.28f && vp.y <= 0.72f)
+                {
+                    hits++;
+                    capturedThisFrame.Add(bird);
+                }
+            }
+
+            if (hits > 0)
+            {
+                birdsCapturedAtCurrentCheckpoint += hits;
+                foreach (var b in capturedThisFrame)
+                {
+                    activeBirds.Remove(b);
+                    Destroy(b);
+                }
+
+                UpdateObjectiveText($"Checkpoint {currentCheckpoint}: Chụp ảnh đàn chim ({birdsCapturedAtCurrentCheckpoint}/3)");
+
+                if (birdsCapturedAtCurrentCheckpoint >= 3)
+                {
+                    ClearCheckpoint();
+                }
+            }
+        }
+
+        private void ClearCheckpoint()
+        {
+            isAtCheckpoint = false;
+            ClearActiveBirds();
+
+            if (flightCoroutine != null) StopCoroutine(flightCoroutine);
+
+            DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
+                "Ừa giỏi quá con ơi! Chụp dính rồi kìa.",
+                "Được 3 tấm hình đẹp rồi đó. Ông cháu mình nổ máy đi tiếp nghen."
+            }, () => {
+                isTravelling = true;
+                UpdateObjectiveText("Nhìn ngắm phong cảnh. Ông Ngoại đang chèo xuồng đưa bạn đi...");
+            });
         }
 
         public void OnPhotoQuestCompleted()
         {
-            if (photoCaptured) return;
-            photoCaptured = true;
-
-            if (event2Triggered)
-            {
-                UpdateObjectiveText("Chụp ảnh Đàn cò trắng thành công!");
-                DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
-                    "Bén quá con ơi! Đất lành chim đậu, đàn cò trắng về đông như vầy là rừng mình thanh bình lắm đó."
-                });
-            }
-            else if (event1Triggered)
-            {
-                UpdateObjectiveText("Chụp ảnh Vạt nắng vàng thành công!");
-                DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
-                    "Chụp được rồi hả con? Đẹp quá chừng! Ánh sáng này chiếu xiên xiên qua lá nhìn thơ mộng ghê."
-                });
-            }
+            // Handled internally in CheckBirdCapture
         }
 
         private void ReachEnd()

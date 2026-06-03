@@ -159,19 +159,47 @@ namespace RungTramTraSu
                 // Populate photos
                 if (PersistentGameManager.Instance != null && polaroidImages != null)
                 {
-                    int availablePhotos = PersistentGameManager.Instance.savedPhotos.Count;
-                    Debug.Log($"DiaryUI: Displaying {availablePhotos} captured photos in final book.");
+                    string[] categories = new string[] {
+                        "Phase2_Ch1",
+                        "Phase2_Ch2",
+                        "Phase2_Ch3",
+                        "", // Sẽ tìm động vật Phase 4 ở dưới
+                        "Phase5_Sunset"
+                    };
+
                     for (int i = 0; i < polaroidImages.Length; i++)
                     {
-                        if (i < availablePhotos && PersistentGameManager.Instance.savedPhotos[i] != null)
+                        if (i == 3)
                         {
-                            polaroidImages[i].texture = PersistentGameManager.Instance.savedPhotos[i];
-                            polaroidImages[i].color = Color.white;
+                            // Tìm bất kỳ ảnh động vật nào đã chụp ở Phase 4
+                            Texture2D animalTex = PersistentGameManager.Instance.GetPhoto("Phase4_Duck");
+                            if (animalTex == null) animalTex = PersistentGameManager.Instance.GetPhoto("Phase4_Stork");
+                            if (animalTex == null) animalTex = PersistentGameManager.Instance.GetPhoto("Phase4_Snake");
+                            if (animalTex == null) animalTex = PersistentGameManager.Instance.GetPhoto("Phase4_Fish");
+                            if (animalTex == null) animalTex = PersistentGameManager.Instance.GetPhoto("Phase4_Butterfly");
+
+                            if (animalTex != null)
+                            {
+                                polaroidImages[i].texture = animalTex;
+                                polaroidImages[i].color = Color.white;
+                            }
+                            else
+                            {
+                                polaroidImages[i].color = Color.gray;
+                            }
                         }
                         else
                         {
-                            // Placeholder color if photo missing
-                            polaroidImages[i].color = Color.gray;
+                            Texture2D tex = PersistentGameManager.Instance.GetPhoto(categories[i]);
+                            if (tex != null)
+                            {
+                                polaroidImages[i].texture = tex;
+                                polaroidImages[i].color = Color.white;
+                            }
+                            else
+                            {
+                                polaroidImages[i].color = Color.gray;
+                            }
                         }
                     }
                 }

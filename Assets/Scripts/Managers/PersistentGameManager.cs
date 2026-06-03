@@ -21,7 +21,7 @@ namespace RungTramTraSu
             }
         }
 
-        public List<Texture2D> savedPhotos = new List<Texture2D>();
+        public Dictionary<string, Texture2D> savedPhotosDict = new Dictionary<string, Texture2D>();
 
         private void Awake()
         {
@@ -38,21 +38,44 @@ namespace RungTramTraSu
 
         public void SavePhoto(Texture2D photo)
         {
+            SavePhoto("General_" + System.DateTime.Now.Ticks, photo);
+        }
+
+        public void SavePhoto(string category, Texture2D photo)
+        {
             // Clone texture to prevent memory release on scene changes
             Texture2D newTex = new Texture2D(photo.width, photo.height, photo.format, false);
             newTex.SetPixels(photo.GetPixels());
             newTex.Apply();
-            savedPhotos.Add(newTex);
-            Debug.Log("[PersistentGameManager] Photo saved! Total: " + savedPhotos.Count);
+
+            if (savedPhotosDict.ContainsKey(category))
+            {
+                if (savedPhotosDict[category] != null) Destroy(savedPhotosDict[category]);
+                savedPhotosDict[category] = newTex;
+            }
+            else
+            {
+                savedPhotosDict.Add(category, newTex);
+            }
+            Debug.Log("[PersistentGameManager] Photo saved for category: " + category + "! Total: " + savedPhotosDict.Count);
+        }
+
+        public Texture2D GetPhoto(string category)
+        {
+            if (savedPhotosDict.TryGetValue(category, out Texture2D tex))
+            {
+                return tex;
+            }
+            return null;
         }
 
         public void ClearPhotos()
         {
-            foreach (var tex in savedPhotos)
+            foreach (var kvp in savedPhotosDict)
             {
-                if (tex != null) Destroy(tex);
+                if (kvp.Value != null) Destroy(kvp.Value);
             }
-            savedPhotos.Clear();
+            savedPhotosDict.Clear();
         }
     }
 }
