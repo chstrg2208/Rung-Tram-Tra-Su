@@ -58,7 +58,15 @@ namespace RungTramTraSu
                 player.localRotation = Quaternion.identity;
                 
                 var controller = player.GetComponent<PlayerController>();
-                if (controller != null) controller.SetFrozen(true);
+                if (controller != null)
+                {
+                    controller.SetFrozen(false);
+                    controller.SetMovementLocked(true);
+                }
+
+                // Tắt CharacterController để player di chuyển theo Parent (thuyền) một cách chính xác
+                var cc = player.GetComponent<CharacterController>();
+                if (cc != null) cc.enabled = false;
             }
 
             if (storksFlock != null) storksFlock.SetActive(false);
@@ -203,6 +211,15 @@ namespace RungTramTraSu
             if (player != null)
             {
                 player.SetParent(null);
+                
+                var controller = player.GetComponent<PlayerController>();
+                if (controller != null)
+                {
+                    controller.SetMovementLocked(false);
+                }
+
+                var cc = player.GetComponent<CharacterController>();
+                if (cc != null) cc.enabled = true;
             }
 
             if (ScreenFader.Instance != null)

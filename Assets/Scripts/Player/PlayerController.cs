@@ -38,6 +38,7 @@ namespace RungTramTraSu
         private float targetCameraY;
         private bool isCrouching = false;
         private bool isFrozen = false;
+        private bool isMovementLocked = false;
 
         public bool IsCrouching => isCrouching;
 
@@ -82,7 +83,7 @@ namespace RungTramTraSu
             if (isFrozen)
             {
                 // Áp dụng trọng lực ngay cả khi đứng im
-                if (!characterController.isGrounded)
+                if (characterController != null && characterController.enabled && !characterController.isGrounded)
                 {
                     moveDirection.y += gravity * Time.deltaTime;
                     characterController.Move(moveDirection * Time.deltaTime);
@@ -90,7 +91,20 @@ namespace RungTramTraSu
                 return;
             }
 
-            HandleMovement();
+            if (!isMovementLocked)
+            {
+                HandleMovement();
+            }
+            else
+            {
+                // Áp dụng trọng lực khi khóa di chuyển (nếu CharacterController bật)
+                if (characterController != null && characterController.enabled && !characterController.isGrounded)
+                {
+                    moveDirection = new Vector3(0, gravity, 0);
+                    characterController.Move(moveDirection * Time.deltaTime);
+                }
+            }
+
             HandleMouseLook();
             HandleCrouchTransition();
         }
@@ -186,6 +200,18 @@ namespace RungTramTraSu
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
+            }
+        }
+
+        /// <summary>
+        /// Khóa hoặc mở khóa di chuyển WASD của người chơi nhưng vẫn cho phép xoay chuột nhìn
+        /// </summary>
+        public void SetMovementLocked(bool locked)
+        {
+            isMovementLocked = locked;
+            if (locked)
+            {
+                moveDirection = Vector3.zero;
             }
         }
     }
