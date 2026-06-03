@@ -169,5 +169,15 @@ namespace RungTramTraSu
         {
             if (objectiveText != null) objectiveText.text = text;
         }
+
+        public void ShowGrandpaWarning(string warning)
+        {
+            if (objectiveText != null) objectiveText.text = warning;
+        }
+
+        public void OnPhotoQuestCompleted()
+        {
+            // Handled internally or no photo quest in Phase 3
+        }
     }
 }
