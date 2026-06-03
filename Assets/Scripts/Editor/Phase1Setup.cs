@@ -976,6 +976,18 @@ namespace RungTramTraSu
                 boat.transform.localScale = new Vector3(5f, 5f, 5f);
                 SetupPerfectBoatCollider(boat);
                 boat.AddComponent<WaterFloat>();
+
+                // Thêm Ông Ngoại ngồi ở mũi thuyền chèo xuồng
+                GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", Vector3.zero, Quaternion.identity);
+                if (grandpa != null)
+                {
+                    grandpa.transform.SetParent(boat.transform, false);
+                    // Bù trừ tỷ lệ scale 5x của thuyền (giữ kích thước của ông ngoại ở mức 0.85x chuẩn trong thế giới thực)
+                    grandpa.transform.localScale = new Vector3(0.85f / 5f, 0.85f / 5f, 0.85f / 5f);
+                    // Đặt ông ngoại ở đầu thuyền, quay mặt về phía trước cùng chiều di chuyển
+                    grandpa.transform.localPosition = new Vector3(0f, 0.3f / 5f, 1.5f / 5f);
+                    grandpa.transform.localRotation = Quaternion.identity;
+                }
             }
 
             // Pier at start and end
