@@ -7,6 +7,8 @@ using UnityEngine.Rendering;
 using UnityEngine.Rendering.Universal;
 using TMPro;
 using System.IO;
+using System.Collections.Generic;
+
 
 namespace RungTramTraSu
 {
@@ -49,12 +51,6 @@ namespace RungTramTraSu
             Texture2D grassTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/grass_dirt_texture.png");
             Texture2D waterTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/duckweed_water_texture.png");
 
-            // A1. Bờ Đất Trái (Sân nhà và hiên xuất phát) - Chạy từ X = -45 đến X = 15 (Dày 10m chống lún)
-            GameObject groundLeft = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            groundLeft.name = "GroundLeft_Bank";
-            groundLeft.transform.position = new Vector3(-15f, -5.0f, 0f); // Mặt trên tại Y = 0f
-            groundLeft.transform.localScale = new Vector3(60f, 10.0f, 80f);
-            
             Material grassMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             if (grassTex != null)
             {
@@ -65,68 +61,124 @@ namespace RungTramTraSu
             {
                 grassMat.color = new Color(0.15f, 0.32f, 0.18f);
             }
-            // Đất cỏ nhám không phản bóng (Smoothness thấp)
             if (grassMat.HasProperty("_Smoothness")) grassMat.SetFloat("_Smoothness", 0.05f);
             else if (grassMat.HasProperty("_Glossiness")) grassMat.SetFloat("_Glossiness", 0.05f);
-            groundLeft.GetComponent<Renderer>().sharedMaterial = grassMat;
-
-            // A2. Bờ Đất Phải (Bờ đối diện) - Chạy từ X = 35 đến X = 55 (Dày 10m chống lún)
-            GameObject groundRight = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            groundRight.name = "GroundRight_Bank";
-            groundRight.transform.position = new Vector3(45f, -5.0f, 0f); // Mặt trên tại Y = 0f
-            groundRight.transform.localScale = new Vector3(20f, 10.0f, 80f);
-            groundRight.GetComponent<Renderer>().sharedMaterial = grassMat;
-
-            // B. Con kênh bèo tấm ở chính giữa - Chạy từ X = 15 đến X = 35 (Sâu -1.0m)
-            GameObject river = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            river.name = "RiverWater_Canal";
-            river.transform.position = new Vector3(25f, -1.0f, 0f); // Mặt nước sông bèo ở Y = -1.0m
-            river.transform.localScale = new Vector3(2f, 1f, 8f);   // Kích thước 20m x 80m
-            DestroyImmediate(river.GetComponent<MeshCollider>());
 
             Material waterMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
             if (waterTex != null)
             {
                 waterMat.mainTexture = waterTex;
-                waterMat.mainTextureScale = new Vector2(4f, 16f);
+                waterMat.mainTextureScale = new Vector2(6f, 18f);
             }
             else
             {
                 waterMat.color = new Color(0.08f, 0.22f, 0.18f);
             }
-            // Mặt nước nhẵn lấp lánh phản chiếu mặt trời cực tốt
             if (waterMat.HasProperty("_Smoothness")) waterMat.SetFloat("_Smoothness", 0.85f);
-            else if (waterMat.HasProperty("_Glossiness")) waterMat.SetFloat("_Glossiness", 0.85f);
             waterMat.SetFloat("_Metallic", 0.15f);
+
+            // A. Tạo lưới địa hình hữu cơ (Organic Terrain Mesh Grid)
+            GameObject terrainObj = new GameObject("OrganicTerrain_Bank");
+            MeshFilter meshFilter = terrainObj.AddComponent<MeshFilter>();
+            MeshRenderer meshRenderer = terrainObj.AddComponent<MeshRenderer>();
+            MeshCollider meshCollider = terrainObj.AddComponent<MeshCollider>();
+
+            Mesh terrainMesh = new Mesh();
+            terrainMesh.name = "TerrainMesh";
+
+            int xSegments = 120;
+            int zSegments = 120;
+            int numVertices = (xSegments + 1) * (zSegments + 1);
+            Vector3[] vertices = new Vector3[numVertices];
+            Vector2[] uvs = new Vector2[numVertices];
+            int[] triangles = new int[xSegments * zSegments * 6];
+
+            float xMin = -55f;
+            float xMax = 55f;
+            float zMin = -65f;
+            float zMax = 65f;
+
+            int vIndex = 0;
+            for (int z = 0; z <= zSegments; z++)
+            {
+                float zPct = (float)z / zSegments;
+                float zPos = Mathf.Lerp(zMin, zMax, zPct);
+
+                for (int x = 0; x <= xSegments; x++)
+                {
+                    float xPct = (float)x / xSegments;
+                    float xPos = Mathf.Lerp(xMin, xMax, xPct);
+
+                    float yPos = GetHeightAt(xPos, zPos);
+                    vertices[vIndex] = new Vector3(xPos, yPos, zPos);
+                    uvs[vIndex] = new Vector2(xPos * 0.12f, zPos * 0.12f);
+                    vIndex++;
+                }
+            }
+
+            int tIndex = 0;
+            for (int z = 0; z < zSegments; z++)
+            {
+                for (int x = 0; x < xSegments; x++)
+                {
+                    int row1 = z * (xSegments + 1);
+                    int row2 = (z + 1) * (xSegments + 1);
+
+                    triangles[tIndex++] = row1 + x;
+                    triangles[tIndex++] = row2 + x;
+                    triangles[tIndex++] = row1 + x + 1;
+
+                    triangles[tIndex++] = row1 + x + 1;
+                    triangles[tIndex++] = row2 + x;
+                    triangles[tIndex++] = row2 + x + 1;
+                }
+            }
+
+            terrainMesh.vertices = vertices;
+            terrainMesh.uv = uvs;
+            terrainMesh.triangles = triangles;
+            terrainMesh.RecalculateNormals();
+            terrainMesh.RecalculateBounds();
+
+            meshFilter.sharedMesh = terrainMesh;
+            meshCollider.sharedMesh = terrainMesh;
+            meshRenderer.sharedMaterial = grassMat;
+
+            // B. Con kênh bèo tấm ở chính giữa (Rộng hơn chút để che phủ kênh uốn lượn)
+            GameObject river = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            river.name = "RiverWater_Canal";
+            river.transform.position = new Vector3(25f, -1.0f, 0f); // Mặt nước sông bèo ở Y = -1.0m
+            river.transform.localScale = new Vector3(4.5f, 1f, 15f);   // Đủ rộng để phủ kín phần uốn lượn sông (45m x 150m)
+            DestroyImmediate(river.GetComponent<MeshCollider>());
             river.GetComponent<Renderer>().sharedMaterial = waterMat;
 
-            // B-Extra: Tạo Đáy sông vật lý dày hẳn 10m để người chơi nhảy xuống sông không bao giờ bị lọt void
+            // B-Extra: Đáy sông vật lý dày để chống lọt lòng sông
             GameObject riverBed = GameObject.CreatePrimitive(PrimitiveType.Cube);
             riverBed.name = "RiverBed_Collider";
-            riverBed.transform.position = new Vector3(25f, -6.5f, 0f); // Mặt trên đáy sông vẫn ở Y = -1.5f (ngập nước 0.5m)
-            riverBed.transform.localScale = new Vector3(20f, 10.0f, 80f);
-            // Ẩn hiển thị hình khối đáy sông (chỉ lấy va chạm collider)
+            riverBed.transform.position = new Vector3(25f, -6.5f, 0f);
+            riverBed.transform.localScale = new Vector3(30f, 10.0f, 130f);
             DestroyImmediate(riverBed.GetComponent<MeshRenderer>());
 
-            // C. Cầu Tàu Gỗ (Wooden Pier) bắc từ bờ trái (đất cao Y=0) nhô ra kênh sông
+            // C. Cầu Tàu Gỗ (Wooden Pier) bắc nhô ra kênh sông, tự động điều chỉnh cao độ theo bờ đất
+            float pierGroundY = GetHeightAt(15f, 8f);
             GameObject pierContainer = new GameObject("WoodenPier");
-            
+
             GameObject plank = GameObject.CreatePrimitive(PrimitiveType.Cube);
             plank.name = "PierPlank";
             plank.transform.SetParent(pierContainer.transform);
-            plank.transform.position = new Vector3(15f, 0.15f, 8f); // Bắc từ X = 13.25 ra X = 16.75
+            plank.transform.position = new Vector3(15f, pierGroundY + 0.15f, 8f);
             plank.transform.localScale = new Vector3(3.5f, 0.08f, 1.3f);
-            
+
             GameObject post1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
             post1.name = "PierPost_1";
             post1.transform.SetParent(pierContainer.transform);
-            post1.transform.position = new Vector3(16.2f, -0.8f, 7.3f); // Cọc gỗ dài 2m cắm qua lòng sông bèo
+            post1.transform.position = new Vector3(16.2f, pierGroundY - 0.8f, 7.3f);
             post1.transform.localScale = new Vector3(0.15f, 2.0f, 0.15f);
 
             GameObject post2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
             post2.name = "PierPost_2";
             post2.transform.SetParent(pierContainer.transform);
-            post2.transform.position = new Vector3(16.2f, -0.8f, 8.7f);
+            post2.transform.position = new Vector3(16.2f, pierGroundY - 0.8f, 8.7f);
             post2.transform.localScale = new Vector3(0.15f, 2.0f, 0.15f);
 
             Material woodMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
@@ -144,12 +196,12 @@ namespace RungTramTraSu
             if (house != null)
             {
                 house.transform.localScale = new Vector3(18f, 18f, 18f);
-                // Tự động gán MeshCollider cho các mesh con của ngôi nhà để người chơi có thể đi vào nhà, bước lên bậc thang
                 AddMeshCollidersRecursively(house);
             }
 
-            // 2. Ông Ngoại (Grandpa NPC) đứng ngay đầu bến cầu tàu gỗ (Y = 0.05f sát đất!)
-            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(13.0f, 0.05f, 8f), Quaternion.Euler(0, 90, 0));
+            // 2. Ông Ngoại (Grandpa NPC) đứng ngay đầu bến cầu tàu gỗ (Tự động thích nghi cao độ mặt đất)
+            float grandpaY = GetHeightAt(13.0f, 8f);
+            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(13.0f, grandpaY, 8f), Quaternion.Euler(0, 90, 0));
             if (grandpa != null)
             {
                 grandpa.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
@@ -162,90 +214,107 @@ namespace RungTramTraSu
             }
 
             // 3. Chiếc xuồng ba lá (Sampan Boat) neo sát mép cầu tàu
-            // - Đặt Y = -0.82f để chìm nhẹ xuống mặt nước bèo tấm Y = -1.0f cho tự nhiên.
-            // - Gán script WaterFloat để tự bập bênh bơi bập bùng hữu cơ.
             GameObject boat = LoadAndInstantiate("Assets/Models/VietnameseBoat/mô+hình+thuyền+sampan+gỗ+3d.glb", "Sampan Boat", new Vector3(17.2f, -0.82f, 8f), Quaternion.Euler(0f, 5f, 0f));
             GameObject boatTriggerZone = null;
             if (boat != null)
             {
                 boat.transform.localScale = new Vector3(5f, 5f, 5f);
-                
-                // Thiết lập hệ thống va chạm vững chắc cho thuyền
                 SetupPerfectBoatCollider(boat);
-
-                // Thêm script bập bênh nước chân thật
                 boat.AddComponent<WaterFloat>();
-                
-                // Vùng nhận diện người chơi bước lên xuồng để kích hoạt chuyển Phase
+
                 boatTriggerZone = new GameObject("BoatTriggerZone");
                 boatTriggerZone.transform.SetParent(boat.transform, false);
                 boatTriggerZone.transform.localPosition = new Vector3(0, 0.3f, 0);
-                
+
                 var triggerCol = boatTriggerZone.AddComponent<BoxCollider>();
                 triggerCol.isTrigger = true;
                 triggerCol.size = new Vector3(1.2f, 0.8f, 3.0f);
-                
+
                 boatTriggerZone.AddComponent<BoatTrigger>();
             }
 
-            // 4. Cây Xoài nhiệm vụ đặt ở góc vườn thoáng
-            GameObject mangoTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "Mango_Tree_Target", new Vector3(-3f, 3.5f, 14f), Quaternion.identity);
+            // 4. Cây Xoài nhiệm vụ đặt ở góc vườn thoáng (Có cao độ hữu cơ)
+            float mangoY = GetHeightAt(-3f, 14f);
+            GameObject mangoTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "Mango_Tree_Target", new Vector3(-3f, mangoY + 3.5f, 14f), Quaternion.identity);
             if (mangoTree != null)
             {
                 mangoTree.transform.localScale = new Vector3(12f, 12f, 12f);
                 mangoTree.layer = LayerMask.NameToLayer("Interactable");
-                
-                // Thêm hiệu ứng đung đưa theo gió
                 mangoTree.AddComponent<WindSway>();
-                
-                // Tạo một GameObject con để làm Trunk Collider với scale nghịch đảo để triệt tiêu scale 12 của cây xoài,
-                // tránh tạo ra bức tường vô hình rộng 18m chặn đường đi của người chơi.
+
                 GameObject trunkCol = new GameObject("TrunkCollider");
                 trunkCol.transform.SetParent(mangoTree.transform, false);
                 trunkCol.transform.localPosition = Vector3.zero;
                 trunkCol.transform.localScale = new Vector3(1f/12f, 1f/12f, 1f/12f);
-                
+
                 var col = trunkCol.AddComponent<CapsuleCollider>();
                 col.center = new Vector3(0f, 1.5f, 0f);
-                col.radius = 0.6f;  // Bán kính 0.6m ở world space
-                col.height = 4.0f;  // Chiều cao 4.0m ở world space
+                col.radius = 0.6f;
+                col.height = 4.0f;
             }
 
 
-            // --- SINH RỪNG TRÀM DỌC HAI BỜ KÊNH (PROCEDURAL FOREST ON BOTH BANKS) ---
-            
+            // --- SINH RỪNG TRÀM HỮU CƠ UỐN LƯỢN DỌC KÊNH & NGHIÊNG BẬP BÙNG ---
+
             Random.InitState(12345);
             GameObject forestContainer = new GameObject("TeaTree_Forest");
-            for (int i = 0; i < 45; i++)
+            int totalTrees = 55;
+            for (int i = 0; i < totalTrees; i++)
             {
-                Vector3 treePos = Vector3.zero;
-                if (i < 20)
+                float zPos = Random.Range(-55f, 55f);
+                // Tìm tâm kênh ở cao độ Z này để tính khoảng cách phân bố cây
+                float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
+                float xPos = 0f;
+
+                if (i < 25)
                 {
-                    // Rừng bờ trái - CHỈ sinh ở X < -15 (rìa bên trái xa) để chừa lối đi X từ -15 đến 15
-                    treePos = new Vector3(Random.Range(-35f, -15f), 3.5f, Random.Range(-35f, 35f));
+                    // Rừng bờ trái: Nằm từ rìa ngoài đến gần mép kênh (tránh khoảng sân trước nhà X từ -12 đến 12 ở gần pier)
+                    if (zPos > -20f && zPos < 25f)
+                    {
+                        // Chừa sân nhà ở khu vực này, cây đẩy lùi sâu về phía âm X
+                        xPos = Random.Range(-40f, -18f);
+                    }
+                    else
+                    {
+                        xPos = Random.Range(-38f, canalCenter - 9f);
+                    }
                 }
                 else
                 {
-                    // Rừng bờ phải (bờ đối diện sông) - Sinh từ X = 36 trở đi (tránh sông)
-                    treePos = new Vector3(Random.Range(36f, 48f), 3.5f, Random.Range(-35f, 35f));
+                    // Rừng bờ phải: Nằm từ mép phải kênh ra rìa
+                    xPos = Random.Range(canalCenter + 9f, canalCenter + 26f);
                 }
 
-                GameObject forestTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "TeaTree_" + i, treePos, Quaternion.Euler(0, Random.Range(0f, 360f), 0));
+                float yPos = GetHeightAt(xPos, zPos);
+                Vector3 treePos = new Vector3(xPos, yPos + 3.5f, zPos);
+
+                // Tính toán độ nghiêng hướng ra bờ sông (leaning effect)
+                float distToCanal = Mathf.Abs(xPos - canalCenter);
+                float tiltAngle = 0f;
+                if (distToCanal < 14f)
+                {
+                    // Càng sát mép nước càng nghiêng (tối đa nghiêng 15-28 độ)
+                    float proximity = Mathf.Clamp01((14f - distToCanal) / 5f);
+                    tiltAngle = proximity * Random.Range(12f, 25f);
+                }
+
+                // Nếu ở bờ trái thì nghiêng sang phải (âm Z rotation), bờ phải thì nghiêng sang trái (dương Z rotation)
+                float zRotationOffset = (xPos < canalCenter) ? -tiltAngle : tiltAngle;
+                Quaternion treeRot = Quaternion.Euler(Random.Range(-5f, 5f), Random.Range(0f, 360f), zRotationOffset);
+
+                GameObject forestTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "TeaTree_" + i, treePos, treeRot);
                 if (forestTree != null)
                 {
                     forestTree.transform.SetParent(forestContainer.transform);
-                    float rndScale = Random.Range(9f, 14f);
+                    float rndScale = Random.Range(9.5f, 13.5f);
                     forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
-                    
-                    // Thêm chuyển động đung đưa theo gió cho cây rừng
                     forestTree.AddComponent<WindSway>();
 
-                    // Thêm Trunk Collider độc lập cho từng cây tràm trong rừng
                     GameObject trunkCol = new GameObject("TrunkCollider");
                     trunkCol.transform.SetParent(forestTree.transform, false);
                     trunkCol.transform.localPosition = Vector3.zero;
                     trunkCol.transform.localScale = new Vector3(1f/rndScale, 1f/rndScale, 1f/rndScale);
-                    
+
                     var col = trunkCol.AddComponent<CapsuleCollider>();
                     col.center = new Vector3(0f, 1.5f, 0f);
                     col.radius = 0.5f;
@@ -253,12 +322,80 @@ namespace RungTramTraSu
                 }
             }
 
+            // --- SINH BÈO TẤM / HOA SÚNG NỔI (3D FLOATING LILY PADS) ---
+            GameObject lilyContainer = new GameObject("FloatingLilyPads");
+            Material lilyMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            lilyMat.color = new Color(0.12f, 0.45f, 0.22f);
+            if (lilyMat.HasProperty("_Smoothness")) lilyMat.SetFloat("_Smoothness", 0.08f);
+
+            for (int i = 0; i < 40; i++)
+            {
+                float zPos = Random.Range(-45f, 45f);
+                float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
+                // Bèo nổi rải rác trong kênh
+                float xPos = canalCenter + Random.Range(-5.5f, 5.5f);
+                float yPos = -0.98f; // Hơi nhô trên mặt nước Y = -1.0f
+
+                GameObject pad = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                pad.name = "LilyPad_" + i;
+                pad.transform.SetParent(lilyContainer.transform);
+                pad.transform.position = new Vector3(xPos, yPos, zPos);
+                float padScale = Random.Range(0.6f, 1.4f);
+                pad.transform.localScale = new Vector3(padScale, 0.01f, padScale);
+                pad.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                
+                // Hủy va chạm để tránh gây cản trở thuyền hoặc người chơi
+                DestroyImmediate(pad.GetComponent<Collider>());
+                pad.GetComponent<Renderer>().sharedMaterial = lilyMat;
+            }
+
+            // --- SINH RẶNG SẬY / CỎ VEN BỜ (SHORELINE REEDS) ---
+            GameObject reedContainer = new GameObject("ShorelineReeds");
+            Material reedMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            reedMat.color = new Color(0.24f, 0.38f, 0.14f);
+            if (reedMat.HasProperty("_Smoothness")) reedMat.SetFloat("_Smoothness", 0.05f);
+
+            for (int i = 0; i < 90; i++)
+            {
+                float zPos = Random.Range(-50f, 50f);
+                float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
+                
+                // Mọc ở viền kênh (X từ canalCenter - 6.8 đến canalCenter - 5.2 hoặc canalCenter + 5.2 đến canalCenter + 6.8)
+                float xPos = 0f;
+                if (Random.value > 0.5f)
+                {
+                    xPos = canalCenter - Random.Range(5.2f, 6.8f);
+                }
+                else
+                {
+                    xPos = canalCenter + Random.Range(5.2f, 6.8f);
+                }
+
+                float yPos = GetHeightAt(xPos, zPos);
+                // Không sinh lau sậy đè lên bến cầu tàu gỗ
+                if (zPos > 6.5f && zPos < 9.5f && xPos < canalCenter) continue;
+
+                GameObject reed = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                reed.name = "Reed_" + i;
+                reed.transform.SetParent(reedContainer.transform);
+                
+                float reedHeight = Random.Range(1.2f, 2.3f);
+                reed.transform.position = new Vector3(xPos, yPos + reedHeight * 0.5f - 0.2f, zPos);
+                reed.transform.localScale = new Vector3(0.06f, reedHeight, 0.06f);
+                
+                DestroyImmediate(reed.GetComponent<Collider>());
+                reed.GetComponent<Renderer>().sharedMaterial = reedMat;
+            }
+
 
             // --- THIẾT LẬP NHÂN VẬT CHƠI (PLAYER & CAMERA) ---
 
             GameObject player = new GameObject("Player");
             player.tag = "Player";
-            player.transform.position = new Vector3(6f, 1.0f, -10f); // Xuất phát từ sân trống hướng nhìn ra nhà và sông
+            
+            // Xuất phát tại Y an toàn phía trên địa hình
+            float playerStartY = GetHeightAt(6f, -10f) + 1.5f;
+            player.transform.position = new Vector3(6f, playerStartY, -10f);
 
             var charController = player.AddComponent<CharacterController>();
             charController.height = 2f;
@@ -276,7 +413,6 @@ namespace RungTramTraSu
             var playerCtrl = player.AddComponent<PlayerController>();
             var playerInteract = player.AddComponent<PlayerInteraction>();
 
-            // Camera mắt nhìn
             GameObject camObj = new GameObject("Main Camera");
             camObj.tag = "MainCamera";
             camObj.transform.SetParent(player.transform, false);
@@ -284,7 +420,6 @@ namespace RungTramTraSu
             var camera = camObj.AddComponent<Camera>();
             camObj.AddComponent<AudioListener>();
 
-            // Kích hoạt Hậu kỳ điện ảnh (Post-Processing) trên Camera URP
             var cameraData = camObj.AddComponent<UniversalAdditionalCameraData>();
             cameraData.renderPostProcessing = true;
 
@@ -500,9 +635,9 @@ namespace RungTramTraSu
 
             // 1. Cấu hình Fog (Sương mù buổi sáng vùng sông nước miền Tây)
             RenderSettings.fog = true;
-            RenderSettings.fogColor = new Color(0.62f, 0.72f, 0.66f); // Sương mù xám xanh lục nhạt
+            RenderSettings.fogColor = new Color(0.60f, 0.73f, 0.65f); // Sương mù xám xanh lục nhạt
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = 0.015f;
+            RenderSettings.fogDensity = 0.022f; // Sương mù đậm đặc hơn tí tạo độ mờ ảo trong rừng tràm
 
             // 2. Tạo đối tượng Global Volume chứa hậu kỳ
             GameObject volumeObj = new GameObject("Global PostProcess Volume");
@@ -512,31 +647,31 @@ namespace RungTramTraSu
             // Tạo Volume Profile mới
             VolumeProfile profile = ScriptableObject.CreateInstance<VolumeProfile>();
 
-            // - ACES Tonemapping (Cho dải tương phản cao, màu sắc điện ảnh sắc sảo)
+            // - ACES Tonemapping
             var tonemapping = profile.Add<Tonemapping>();
             tonemapping.active = true;
             tonemapping.mode.Override(TonemappingMode.ACES);
 
-            // - Bloom (Nắng sớm tỏa sáng rực rỡ qua tán cây)
+            // - Bloom (Nắng vàng tỏa rực rỡ qua sương sớm)
             var bloom = profile.Add<Bloom>();
             bloom.active = true;
-            bloom.threshold.Override(0.85f);
-            bloom.intensity.Override(1.6f);
-            bloom.scatter.Override(0.7f);
-            bloom.tint.Override(new Color(1f, 0.95f, 0.82f)); // Sắc vàng nắng sớm ấm áp
+            bloom.threshold.Override(0.78f);
+            bloom.intensity.Override(2.2f);
+            bloom.scatter.Override(0.72f);
+            bloom.tint.Override(new Color(1f, 0.94f, 0.80f)); 
 
-            // - Color Adjustments (Tăng tương phản và độ rực của lá cây, bèo sông nước)
+            // - Color Adjustments (Nâng độ rực và tương phản của bèo xanh, cỏ cây)
             var colorAdjust = profile.Add<ColorAdjustments>();
             colorAdjust.active = true;
-            colorAdjust.contrast.Override(20f);
-            colorAdjust.saturation.Override(28f);
-            colorAdjust.postExposure.Override(0.18f);
+            colorAdjust.contrast.Override(25f);
+            colorAdjust.saturation.Override(32f);
+            colorAdjust.postExposure.Override(0.24f);
 
-            // - Vignette (Tạo góc tối điện ảnh, tập trung góc nhìn)
+            // - Vignette (Cinematic border)
             var vignette = profile.Add<Vignette>();
             vignette.active = true;
-            vignette.intensity.Override(0.24f);
-            vignette.smoothness.Override(0.38f);
+            vignette.intensity.Override(0.28f);
+            vignette.smoothness.Override(0.4f);
             vignette.rounded.Override(true);
 
             volume.sharedProfile = profile;
@@ -550,7 +685,10 @@ namespace RungTramTraSu
             EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase1_GrandpaHouse.unity");
             Debug.Log("==> SETUP DỰ ÁN THÀNH CÔNG! Đã lưu scene tại: Assets/Scenes/Phase1_GrandpaHouse.unity");
             
-            EditorUtility.DisplayDialog("Thành công!", "Nâng cấp hình ảnh hậu kỳ, ánh sáng và gió động cành lá đã hoàn tất!", "Đồng ý");
+            if (!Application.isBatchMode)
+            {
+                EditorUtility.DisplayDialog("Thành công!", "Nâng cấp hình ảnh hậu kỳ, ánh sáng và gió động cành lá đã hoàn tất!", "Đồng ý");
+            }
         }
 
         private static GameObject LoadAndInstantiate(string path, string newName, Vector3 position, Quaternion rotation)
@@ -672,5 +810,1307 @@ namespace RungTramTraSu
                 }
             }
         }
+
+        private static float GetHeightAt(float x, float z)
+        {
+            float canalCenter = 25f + Mathf.Sin(z * 0.08f) * 5f;
+            float dist = Mathf.Abs(x - canalCenter);
+            
+            float t = (dist - 6f) / 8f;
+            t = Mathf.Clamp01(t);
+            float smoothT = t * t * (3f - 2f * t);
+            float baseHeight = Mathf.Lerp(-2.2f, 0.0f, smoothT);
+            
+            float noise = 0f;
+            if (dist > 5f)
+            {
+                float n1 = Mathf.PerlinNoise(x * 0.08f + 100f, z * 0.08f + 100f) * 1.5f;
+                float n2 = Mathf.PerlinNoise(x * 0.25f + 200f, z * 0.25f + 200f) * 0.3f;
+                noise = (n1 + n2) * smoothT;
+            }
+            
+            float leftBoost = 0f;
+            if (x < -10f)
+            {
+                leftBoost = Mathf.Lerp(0f, 2.5f, (-10f - x) / 45f);
+            }
+            
+            return baseHeight + noise + leftBoost;
+        }
+
+        [MenuItem("Rung Tram Tra Su/Setup All Scenes")]
+        public static void CreateAllScenes()
+        {
+            CreatePhase1Scene();
+            CreatePhase2Scene();
+            CreatePhase3Scene();
+            CreatePhase4Scene();
+            CreatePhase5Scene();
+            
+            // Add all scenes to Build Settings
+            List<EditorBuildSettingsScene> buildScenes = new List<EditorBuildSettingsScene>();
+            buildScenes.Add(new EditorBuildSettingsScene("Assets/Scenes/Phase1_GrandpaHouse.unity", true));
+            buildScenes.Add(new EditorBuildSettingsScene("Assets/Scenes/Phase2_Canal.unity", true));
+            buildScenes.Add(new EditorBuildSettingsScene("Assets/Scenes/Phase3_BambooBridge.unity", true));
+            buildScenes.Add(new EditorBuildSettingsScene("Assets/Scenes/Phase4_Sanctuary.unity", true));
+            buildScenes.Add(new EditorBuildSettingsScene("Assets/Scenes/Phase5_Sunset.unity", true));
+            EditorBuildSettings.scenes = buildScenes.ToArray();
+            
+            Debug.Log("==> HOÀN TẤT TẠO TOÀN BỘ SCENES VÀ ĐĂNG KÝ BUILD SETTINGS!");
+            if (!Application.isBatchMode)
+            {
+                EditorUtility.DisplayDialog("Thành công!", "Đã tạo 5 Phase game và đăng ký Build Settings thành công!", "Đồng ý");
+            }
+        }
+
+        [MenuItem("Rung Tram Tra Su/Setup Phase 2 Scene")]
+        public static void CreatePhase2Scene()
+        {
+            AssetDatabase.Refresh();
+            CreateLayer("Interactable");
+            var newScene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            GameObject defaultCam = GameObject.FindWithTag("MainCamera");
+            if (defaultCam != null) DestroyImmediate(defaultCam);
+
+            GameObject dirLight = GameObject.Find("Directional Light");
+            if (dirLight != null)
+            {
+                dirLight.transform.rotation = Quaternion.Euler(20, -55, 0);
+                var lightComp = dirLight.GetComponent<Light>();
+                if (lightComp != null)
+                {
+                    lightComp.color = new Color(1.0f, 0.95f, 0.82f);
+                    lightComp.intensity = 1.5f;
+                    lightComp.shadows = LightShadows.Soft;
+                    lightComp.shadowStrength = 0.85f;
+                }
+            }
+
+            Texture2D grassTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/grass_dirt_texture.png");
+            Texture2D waterTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/duckweed_water_texture.png");
+
+            Material grassMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            if (grassTex != null)
+            {
+                grassMat.mainTexture = grassTex;
+                grassMat.mainTextureScale = new Vector2(15f, 20f);
+            }
+            else grassMat.color = new Color(0.15f, 0.32f, 0.18f);
+
+            Material waterMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            if (waterTex != null)
+            {
+                waterMat.mainTexture = waterTex;
+                waterMat.mainTextureScale = new Vector2(6f, 18f);
+            }
+            else waterMat.color = new Color(0.08f, 0.22f, 0.18f);
+            if (waterMat.HasProperty("_Smoothness")) waterMat.SetFloat("_Smoothness", 0.85f);
+            waterMat.SetFloat("_Metallic", 0.15f);
+
+            // A. Grid terrain
+            GameObject terrainObj = new GameObject("OrganicTerrain_Bank");
+            MeshFilter meshFilter = terrainObj.AddComponent<MeshFilter>();
+            MeshRenderer meshRenderer = terrainObj.AddComponent<MeshRenderer>();
+            MeshCollider meshCollider = terrainObj.AddComponent<MeshCollider>();
+
+            Mesh terrainMesh = new Mesh();
+            int xSegments = 120;
+            int zSegments = 120;
+            int numVertices = (xSegments + 1) * (zSegments + 1);
+            Vector3[] vertices = new Vector3[numVertices];
+            Vector2[] uvs = new Vector2[numVertices];
+            int[] triangles = new int[xSegments * zSegments * 6];
+
+            float xMin = -55f, xMax = 55f, zMin = -65f, zMax = 65f;
+            int vIndex = 0;
+            for (int z = 0; z <= zSegments; z++)
+            {
+                float zPct = (float)z / zSegments;
+                float zPos = Mathf.Lerp(zMin, zMax, zPct);
+                for (int x = 0; x <= xSegments; x++)
+                {
+                    float xPct = (float)x / xSegments;
+                    float xPos = Mathf.Lerp(xMin, xMax, xPct);
+                    float yPos = GetHeightAt(xPos, zPos);
+                    vertices[vIndex] = new Vector3(xPos, yPos, zPos);
+                    uvs[vIndex] = new Vector2(xPos * 0.12f, zPos * 0.12f);
+                    vIndex++;
+                }
+            }
+
+            int tIndex = 0;
+            for (int z = 0; z < zSegments; z++)
+            {
+                for (int x = 0; x < xSegments; x++)
+                {
+                    int row1 = z * (xSegments + 1);
+                    int row2 = (z + 1) * (xSegments + 1);
+                    triangles[tIndex++] = row1 + x;
+                    triangles[tIndex++] = row2 + x;
+                    triangles[tIndex++] = row1 + x + 1;
+                    triangles[tIndex++] = row1 + x + 1;
+                    triangles[tIndex++] = row2 + x;
+                    triangles[tIndex++] = row2 + x + 1;
+                }
+            }
+            terrainMesh.vertices = vertices;
+            terrainMesh.uv = uvs;
+            terrainMesh.triangles = triangles;
+            terrainMesh.RecalculateNormals();
+            meshFilter.sharedMesh = terrainMesh;
+            meshCollider.sharedMesh = terrainMesh;
+            meshRenderer.sharedMaterial = grassMat;
+
+            // B. Canal water
+            GameObject river = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            river.name = "RiverWater_Canal";
+            river.transform.position = new Vector3(25f, -1.0f, 0f);
+            river.transform.localScale = new Vector3(4.5f, 1f, 15f);
+            DestroyImmediate(river.GetComponent<MeshCollider>());
+            river.GetComponent<Renderer>().sharedMaterial = waterMat;
+
+            // Boat
+            GameObject boat = LoadAndInstantiate("Assets/Models/VietnameseBoat/mô+hình+thuyền+sampan+gỗ+3d.glb", "Sampan Boat", new Vector3(25f, -0.82f, -55f), Quaternion.identity);
+            if (boat != null)
+            {
+                boat.transform.localScale = new Vector3(5f, 5f, 5f);
+                SetupPerfectBoatCollider(boat);
+                boat.AddComponent<WaterFloat>();
+            }
+
+            // Pier at start and end
+            GameObject startPier = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            startPier.name = "StartPier";
+            startPier.transform.position = new Vector3(25f, -0.4f, -56f);
+            startPier.transform.localScale = new Vector3(3f, 0.1f, 2f);
+            Material woodMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            woodMat.color = new Color(0.32f, 0.2f, 0.11f);
+            startPier.GetComponent<Renderer>().sharedMaterial = woodMat;
+
+            GameObject endPier = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            endPier.name = "EndPier";
+            float endPierY = GetHeightAt(25f, 55f);
+            endPier.transform.position = new Vector3(25f, endPierY + 0.1f, 55f);
+            endPier.transform.localScale = new Vector3(3f, 0.1f, 2f);
+            endPier.GetComponent<Renderer>().sharedMaterial = woodMat;
+
+            // Winding Forest (Massive tree layout)
+            Random.InitState(54321);
+            GameObject forestContainer = new GameObject("TeaTree_Forest");
+            int totalTrees = 120;
+            for (int i = 0; i < totalTrees; i++)
+            {
+                float zPos = Random.Range(-55f, 55f);
+                float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
+                float xPos = (i % 2 == 0) ? Random.Range(-38f, canalCenter - 8.5f) : Random.Range(canalCenter + 8.5f, canalCenter + 26f);
+                float yPos = GetHeightAt(xPos, zPos);
+
+                float distToCanal = Mathf.Abs(xPos - canalCenter);
+                float tiltAngle = (distToCanal < 13f) ? Mathf.Clamp01((13f - distToCanal) / 4.5f) * Random.Range(12f, 25f) : 0f;
+                float zRotationOffset = (xPos < canalCenter) ? -tiltAngle : tiltAngle;
+
+                GameObject forestTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "TeaTree_" + i, new Vector3(xPos, yPos + 3.5f, zPos), Quaternion.Euler(Random.Range(-5f, 5f), Random.Range(0f, 360f), zRotationOffset));
+                if (forestTree != null)
+                {
+                    forestTree.transform.SetParent(forestContainer.transform);
+                    float rndScale = Random.Range(9.5f, 13.5f);
+                    forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
+                    forestTree.AddComponent<WindSway>();
+                }
+            }
+
+            // Lily pads & reeds
+            GameObject lilyContainer = new GameObject("FloatingLilyPads");
+            Material lilyMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            lilyMat.color = new Color(0.12f, 0.45f, 0.22f);
+            for (int i = 0; i < 50; i++)
+            {
+                float zPos = Random.Range(-45f, 45f);
+                float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
+                GameObject pad = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                pad.name = "LilyPad_" + i;
+                pad.transform.SetParent(lilyContainer.transform);
+                pad.transform.position = new Vector3(canalCenter + Random.Range(-5f, 5f), -0.98f, zPos);
+                pad.transform.localScale = new Vector3(Random.Range(0.6f, 1.4f), 0.01f, Random.Range(0.6f, 1.4f));
+                DestroyImmediate(pad.GetComponent<Collider>());
+                pad.GetComponent<Renderer>().sharedMaterial = lilyMat;
+            }
+
+            GameObject reedContainer = new GameObject("ShorelineReeds");
+            Material reedMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            reedMat.color = new Color(0.24f, 0.38f, 0.14f);
+            for (int i = 0; i < 120; i++)
+            {
+                float zPos = Random.Range(-50f, 50f);
+                float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
+                float xPos = (Random.value > 0.5f) ? canalCenter - Random.Range(5.2f, 6.8f) : canalCenter + Random.Range(5.2f, 6.8f);
+                float yPos = GetHeightAt(xPos, zPos);
+                GameObject reed = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                reed.name = "Reed_" + i;
+                reed.transform.SetParent(reedContainer.transform);
+                float reedHeight = Random.Range(1.2f, 2.3f);
+                reed.transform.position = new Vector3(xPos, yPos + reedHeight * 0.5f - 0.2f, zPos);
+                reed.transform.localScale = new Vector3(0.06f, reedHeight, 0.06f);
+                DestroyImmediate(reed.GetComponent<Collider>());
+                reed.GetComponent<Renderer>().sharedMaterial = reedMat;
+            }
+
+            // Event targets
+            GameObject sunRayObj = new GameObject("SunRayQuestTarget");
+            sunRayObj.transform.position = new Vector3(23f, 4f, -10f);
+            for (int i = 0; i < 3; i++)
+            {
+                GameObject shaft = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                shaft.name = "Sunshaft_Visual";
+                shaft.transform.SetParent(sunRayObj.transform, false);
+                shaft.transform.localPosition = new Vector3(Random.Range(-2f, 2f), 0f, Random.Range(-2f, 2f));
+                shaft.transform.localScale = new Vector3(0.8f, 6f, 0.8f);
+                shaft.transform.rotation = Quaternion.Euler(20f, 0f, 15f);
+                DestroyImmediate(shaft.GetComponent<Collider>());
+                Material shaftMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                shaftMat.color = new Color(1.0f, 0.95f, 0.6f, 0.24f);
+                shaftMat.SetFloat("_Surface", 1.0f);
+                shaftMat.SetOverrideTag("RenderType", "Transparent");
+                shaftMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                shaftMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                shaftMat.SetInt("_ZWrite", 0);
+                shaftMat.DisableKeyword("_ALPHATEST_ON");
+                shaftMat.EnableKeyword("_ALPHAPREMULTIPLY_ON");
+                shaftMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                shaft.GetComponent<Renderer>().sharedMaterial = shaftMat;
+            }
+
+            GameObject flock = new GameObject("StorksFlock");
+            flock.transform.position = new Vector3(25f, 10f, 30f);
+            GameObject storkLeader = null;
+            for (int i = 0; i < 6; i++)
+            {
+                GameObject bird = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                bird.name = "Stork_Bird_" + i;
+                bird.transform.SetParent(flock.transform, false);
+                bird.transform.localPosition = new Vector3(Random.Range(-2f, 2f), Random.Range(-1f, 1f), Random.Range(-2f, 2f));
+                bird.transform.localScale = new Vector3(0.7f, 0.15f, 0.5f);
+                Material birdMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                birdMat.color = Color.white;
+                bird.GetComponent<Renderer>().sharedMaterial = birdMat;
+                DestroyImmediate(bird.GetComponent<Collider>());
+                if (i == 0) storkLeader = bird;
+            }
+
+            // Setup Player
+            GameObject player = new GameObject("Player");
+            player.tag = "Player";
+            player.transform.position = new Vector3(25f, 0.5f, -55f);
+            var charController = player.AddComponent<CharacterController>();
+            charController.height = 2f;
+            charController.radius = 0.4f;
+            charController.center = new Vector3(0, 1f, 0);
+            
+            InputActionAsset inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
+            var playerInput = player.AddComponent<PlayerInput>();
+            if (inputAsset != null)
+            {
+                playerInput.actions = inputAsset;
+                playerInput.defaultActionMap = "Player";
+            }
+            var playerCtrl = player.AddComponent<PlayerController>();
+            var playerInteract = player.AddComponent<PlayerInteraction>();
+
+            GameObject camObj = new GameObject("Main Camera");
+            camObj.tag = "MainCamera";
+            camObj.transform.SetParent(player.transform, false);
+            camObj.transform.localPosition = new Vector3(0, 1.8f, 0);
+            camObj.AddComponent<Camera>();
+            camObj.AddComponent<AudioListener>();
+            var cameraData = camObj.AddComponent<UniversalAdditionalCameraData>();
+            cameraData.renderPostProcessing = true;
+            var photoCam = camObj.AddComponent<PhotoCamera>();
+
+            GameObject cameraHandModel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cameraHandModel.name = "CameraHandModel";
+            cameraHandModel.transform.SetParent(camObj.transform, false);
+            cameraHandModel.transform.localPosition = new Vector3(0.2f, -0.25f, 0.4f);
+            cameraHandModel.transform.localScale = new Vector3(0.12f, 0.08f, 0.1f);
+            DestroyImmediate(cameraHandModel.GetComponent<BoxCollider>());
+
+            new SerializedObject(playerCtrl) { }.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
+            new SerializedObject(playerCtrl).ApplyModifiedProperties();
+            var serInteract = new SerializedObject(playerInteract);
+            serInteract.FindProperty("cameraTransform").objectReferenceValue = camObj.transform;
+            serInteract.FindProperty("interactableLayer").intValue = 1 << LayerMask.NameToLayer("Interactable");
+            serInteract.ApplyModifiedProperties();
+
+            GameObject gameUI = CreateBaseGameUI(photoCam, cameraHandModel, out TextMeshProUGUI objText);
+
+            GameObject managersObj = new GameObject("Managers");
+            managersObj.AddComponent<DialogueManager>();
+            managersObj.AddComponent<ScreenFader>();
+            var p2Manager = managersObj.AddComponent<Phase2Manager>();
+
+            var serPhase2 = new SerializedObject(p2Manager);
+            serPhase2.FindProperty("boat").objectReferenceValue = boat.transform;
+            serPhase2.FindProperty("player").objectReferenceValue = player.transform;
+            serPhase2.FindProperty("objectiveText").objectReferenceValue = objText;
+            serPhase2.FindProperty("photoCamera").objectReferenceValue = photoCam;
+            serPhase2.FindProperty("sunRayTarget").objectReferenceValue = sunRayObj.transform;
+            serPhase2.FindProperty("storkTarget").objectReferenceValue = storkLeader.transform;
+            serPhase2.FindProperty("storksFlock").objectReferenceValue = flock;
+            serPhase2.ApplyModifiedProperties();
+
+            SetupPostProcessingAndFog(camObj);
+
+            EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase2_Canal.unity");
+            Debug.Log("Successfully created Phase 2 scene!");
+        }
+
+        [MenuItem("Rung Tram Tra Su/Setup Phase 3 Scene")]
+        public static void CreatePhase3Scene()
+        {
+            AssetDatabase.Refresh();
+            CreateLayer("Interactable");
+            var newScene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            GameObject defaultCam = GameObject.FindWithTag("MainCamera");
+            if (defaultCam != null) DestroyImmediate(defaultCam);
+
+            GameObject dirLight = GameObject.Find("Directional Light");
+            if (dirLight != null)
+            {
+                dirLight.transform.rotation = Quaternion.Euler(32, -45, 0);
+                var lightComp = dirLight.GetComponent<Light>();
+                if (lightComp != null)
+                {
+                    lightComp.color = new Color(0.92f, 0.95f, 0.9f);
+                    lightComp.intensity = 1.0f;
+                    lightComp.shadows = LightShadows.Soft;
+                }
+            }
+
+            Texture2D grassTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/grass_dirt_texture.png");
+            Texture2D waterTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/duckweed_water_texture.png");
+
+            Material grassMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            if (grassTex != null)
+            {
+                grassMat.mainTexture = grassTex;
+                grassMat.mainTextureScale = new Vector2(15f, 20f);
+            }
+            else grassMat.color = new Color(0.12f, 0.28f, 0.14f);
+
+            Material waterMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            if (waterTex != null)
+            {
+                waterMat.mainTexture = waterTex;
+                waterMat.mainTextureScale = new Vector2(5f, 15f);
+            }
+            else waterMat.color = new Color(0.06f, 0.18f, 0.14f);
+            if (waterMat.HasProperty("_Smoothness")) waterMat.SetFloat("_Smoothness", 0.8f);
+
+            Material woodMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            woodMat.color = new Color(0.32f, 0.2f, 0.11f);
+
+            GameObject swampFloor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            swampFloor.name = "SwampFloor_Ground";
+            swampFloor.transform.position = new Vector3(25f, -1.8f, 0f);
+            swampFloor.transform.localScale = new Vector3(8f, 1f, 12f);
+            swampFloor.GetComponent<Renderer>().sharedMaterial = grassMat;
+
+            GameObject water = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            water.name = "SwampWater";
+            water.transform.position = new Vector3(25f, -1.0f, 0f);
+            water.transform.localScale = new Vector3(8f, 1f, 12f);
+            DestroyImmediate(water.GetComponent<MeshCollider>());
+            water.GetComponent<Renderer>().sharedMaterial = waterMat;
+
+            // Bamboo Bridge
+            GameObject bridgeContainer = new GameObject("BambooBridge");
+            List<Vector3> bridgePoints = new List<Vector3>();
+            float bzStart = -48f;
+            float bzEnd = 48f;
+            float bStep = 2.0f;
+            for (float z = bzStart; z <= bzEnd; z += bStep)
+            {
+                float x = 5f + Mathf.Sin(z * 0.12f) * 6f;
+                bridgePoints.Add(new Vector3(x, -0.5f, z));
+            }
+
+            for (int i = 0; i < bridgePoints.Count; i++)
+            {
+                Vector3 pt = bridgePoints[i];
+                GameObject plank = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                plank.name = "BridgePlank_" + i;
+                plank.transform.SetParent(bridgeContainer.transform);
+                plank.transform.position = pt;
+                plank.transform.localScale = new Vector3(1.6f, 0.1f, 2.2f);
+                plank.GetComponent<Renderer>().sharedMaterial = woodMat;
+
+                if (i % 2 == 0)
+                {
+                    GameObject leftPost = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    leftPost.name = "RailPostL_" + i;
+                    leftPost.transform.SetParent(bridgeContainer.transform);
+                    leftPost.transform.position = pt + new Vector3(-0.75f, 0.6f, 0f);
+                    leftPost.transform.localScale = new Vector3(0.08f, 1.2f, 0.08f);
+                    leftPost.GetComponent<Renderer>().sharedMaterial = woodMat;
+                    DestroyImmediate(leftPost.GetComponent<Collider>());
+
+                    GameObject rightPost = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    rightPost.name = "RailPostR_" + i;
+                    rightPost.transform.SetParent(bridgeContainer.transform);
+                    rightPost.transform.position = pt + new Vector3(0.75f, 0.6f, 0f);
+                    rightPost.transform.localScale = new Vector3(0.08f, 1.2f, 0.08f);
+                    rightPost.GetComponent<Renderer>().sharedMaterial = woodMat;
+                    DestroyImmediate(rightPost.GetComponent<Collider>());
+                }
+            }
+
+            // Spawning 150 dense trees (Deep forest feel)
+            Random.InitState(9999);
+            GameObject forestContainer = new GameObject("TeaTree_DenseForest");
+            for (int i = 0; i < 150; i++)
+            {
+                float zPos = Random.Range(-55f, 55f);
+                float xCenter = 5f + Mathf.Sin(zPos * 0.12f) * 6f;
+                float xPos = (i % 2 == 0) ? Random.Range(xCenter - 25f, xCenter - 1.8f) : Random.Range(xCenter + 1.8f, xCenter + 25f);
+
+                GameObject forestTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "TeaTree_" + i, new Vector3(xPos, -1.8f + 3.5f, zPos), Quaternion.Euler(0, Random.Range(0f, 360f), Random.Range(-8f, 8f)));
+                if (forestTree != null)
+                {
+                    forestTree.transform.SetParent(forestContainer.transform);
+                    float rndScale = Random.Range(9f, 13f);
+                    forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
+                    forestTree.AddComponent<WindSway>();
+
+                    GameObject trunkCol = new GameObject("TrunkCollider");
+                    trunkCol.transform.SetParent(forestTree.transform, false);
+                    trunkCol.transform.localScale = new Vector3(1f/rndScale, 1f/rndScale, 1f/rndScale);
+                    var col = trunkCol.AddComponent<CapsuleCollider>();
+                    col.center = new Vector3(0f, 1.5f, 0f);
+                    col.radius = 0.5f;
+                    col.height = 4.0f;
+                }
+            }
+
+            // Breathing roots target (Quest item)
+            GameObject rootGroup = new GameObject("BreathingRootsQuestTarget");
+            float bridgeXAtZ8 = 5f + Mathf.Sin(-8f * 0.12f) * 6f;
+            rootGroup.transform.position = new Vector3(bridgeXAtZ8 - 2.5f, -1.0f, -8f);
+            rootGroup.layer = LayerMask.NameToLayer("Interactable");
+            
+            var rootCol = rootGroup.AddComponent<SphereCollider>();
+            rootCol.center = Vector3.zero;
+            rootCol.radius = 1.8f;
+            rootCol.isTrigger = true;
+
+            for (int i = 0; i < 15; i++)
+            {
+                GameObject root = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                root.name = "Pneumatophore_" + i;
+                root.transform.SetParent(rootGroup.transform, false);
+                root.transform.localPosition = new Vector3(Random.Range(-1.2f, 1.2f), Random.Range(0.2f, 0.6f), Random.Range(-1.2f, 1.2f));
+                root.transform.localScale = new Vector3(0.06f, Random.Range(0.4f, 0.8f), 0.06f);
+                root.transform.rotation = Quaternion.Euler(Random.Range(-10f, 10f), 0f, Random.Range(-10f, 10f));
+                DestroyImmediate(root.GetComponent<Collider>());
+                Material spikeMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                spikeMat.color = new Color(0.28f, 0.18f, 0.1f);
+                root.GetComponent<Renderer>().sharedMaterial = spikeMat;
+            }
+
+            // Setup Player
+            GameObject player = new GameObject("Player");
+            player.tag = "Player";
+            float startX = 5f + Mathf.Sin(-45f * 0.12f) * 6f;
+            player.transform.position = new Vector3(startX, 0.5f, -45f);
+
+            var charController = player.AddComponent<CharacterController>();
+            charController.height = 2f;
+            charController.radius = 0.4f;
+            charController.center = new Vector3(0, 1f, 0);
+
+            InputActionAsset inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
+            var playerInput = player.AddComponent<PlayerInput>();
+            if (inputAsset != null)
+            {
+                playerInput.actions = inputAsset;
+                playerInput.defaultActionMap = "Player";
+            }
+            var playerCtrl = player.AddComponent<PlayerController>();
+            var playerInteract = player.AddComponent<PlayerInteraction>();
+
+            GameObject camObj = new GameObject("Main Camera");
+            camObj.tag = "MainCamera";
+            camObj.transform.SetParent(player.transform, false);
+            camObj.transform.localPosition = new Vector3(0, 1.8f, 0);
+            camObj.AddComponent<Camera>();
+            camObj.AddComponent<AudioListener>();
+            var cameraData = camObj.AddComponent<UniversalAdditionalCameraData>();
+            cameraData.renderPostProcessing = true;
+            var photoCam = camObj.AddComponent<PhotoCamera>();
+
+            GameObject cameraHandModel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cameraHandModel.name = "CameraHandModel";
+            cameraHandModel.transform.SetParent(camObj.transform, false);
+            cameraHandModel.transform.localPosition = new Vector3(0.2f, -0.25f, 0.4f);
+            cameraHandModel.transform.localScale = new Vector3(0.12f, 0.08f, 0.1f);
+            DestroyImmediate(cameraHandModel.GetComponent<BoxCollider>());
+
+            new SerializedObject(playerCtrl) { }.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
+            new SerializedObject(playerCtrl).ApplyModifiedProperties();
+            var serInteract = new SerializedObject(playerInteract);
+            serInteract.FindProperty("cameraTransform").objectReferenceValue = camObj.transform;
+            serInteract.FindProperty("interactableLayer").intValue = 1 << LayerMask.NameToLayer("Interactable");
+            serInteract.ApplyModifiedProperties();
+
+            GameObject gameUI = CreateBaseGameUI(photoCam, cameraHandModel, out TextMeshProUGUI objText);
+
+            // Grandpa NPC
+            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(startX + 1f, -0.42f, -43f), Quaternion.identity);
+            if (grandpa != null)
+            {
+                grandpa.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
+                var col = grandpa.AddComponent<CapsuleCollider>();
+                col.center = new Vector3(0, 0.9f, 0);
+                col.radius = 0.35f;
+                col.height = 1.8f;
+                grandpa.AddComponent<GrandpaAI>();
+            }
+
+            // Managers
+            GameObject managersObj = new GameObject("Managers");
+            managersObj.AddComponent<DialogueManager>();
+            managersObj.AddComponent<ScreenFader>();
+            var p3Manager = managersObj.AddComponent<Phase3Manager>();
+
+            var serPhase3 = new SerializedObject(p3Manager);
+            serPhase3.FindProperty("grandpa").objectReferenceValue = grandpa.GetComponent<GrandpaAI>();
+            serPhase3.FindProperty("player").objectReferenceValue = player.transform;
+            serPhase3.FindProperty("objectiveText").objectReferenceValue = objText;
+            serPhase3.FindProperty("photoCamera").objectReferenceValue = photoCam;
+            serPhase3.FindProperty("rootTarget").objectReferenceValue = rootGroup.transform;
+            serPhase3.ApplyModifiedProperties();
+
+            SetupPostProcessingAndFog(camObj);
+
+            EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase3_BambooBridge.unity");
+            Debug.Log("Successfully created Phase 3 scene!");
+        }
+
+        [MenuItem("Rung Tram Tra Su/Setup Phase 4 Scene")]
+        public static void CreatePhase4Scene()
+        {
+            AssetDatabase.Refresh();
+            CreateLayer("Interactable");
+            var newScene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            GameObject defaultCam = GameObject.FindWithTag("MainCamera");
+            if (defaultCam != null) DestroyImmediate(defaultCam);
+
+            GameObject dirLight = GameObject.Find("Directional Light");
+            if (dirLight != null)
+            {
+                dirLight.transform.rotation = Quaternion.Euler(30, -55, 0);
+                var lightComp = dirLight.GetComponent<Light>();
+                if (lightComp != null)
+                {
+                    lightComp.color = new Color(0.95f, 0.98f, 0.92f);
+                    lightComp.intensity = 1.2f;
+                    lightComp.shadows = LightShadows.Soft;
+                }
+            }
+
+            Texture2D grassTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/grass_dirt_texture.png");
+            Texture2D waterTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/duckweed_water_texture.png");
+
+            Material grassMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            if (grassTex != null)
+            {
+                grassMat.mainTexture = grassTex;
+                grassMat.mainTextureScale = new Vector2(20f, 25f);
+            }
+            else grassMat.color = new Color(0.12f, 0.28f, 0.14f);
+
+            Material waterMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            if (waterTex != null)
+            {
+                waterMat.mainTexture = waterTex;
+                waterMat.mainTextureScale = new Vector2(8f, 12f);
+            }
+            else waterMat.color = new Color(0.06f, 0.18f, 0.14f);
+            if (waterMat.HasProperty("_Smoothness")) waterMat.SetFloat("_Smoothness", 0.75f);
+
+            GameObject swampFloor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            swampFloor.name = "SwampFloor_Ground";
+            swampFloor.transform.position = new Vector3(20f, -1.8f, 0f);
+            swampFloor.transform.localScale = new Vector3(10f, 1f, 12f);
+
+            GameObject water = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            water.name = "SwampWater";
+            water.transform.position = new Vector3(20f, -1.0f, 0f);
+            water.transform.localScale = new Vector3(10f, 1f, 12f);
+            DestroyImmediate(water.GetComponent<MeshCollider>());
+            water.GetComponent<Renderer>().sharedMaterial = waterMat;
+
+            // Spawning 150 cajuput trees (dense sanctuary forest!)
+            Random.InitState(777);
+            GameObject forestContainer = new GameObject("TeaTree_SanctuaryForest");
+            for (int i = 0; i < 150; i++)
+            {
+                float xPos = Random.Range(-25f, 65f);
+                float zPos = Random.Range(-55f, 55f);
+                if (xPos > 12f && xPos < 28f && zPos > -45f && zPos < 45f && Random.value > 0.3f)
+                {
+                    xPos += (Random.value > 0.5f) ? 16f : -16f;
+                }
+
+                GameObject forestTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "TeaTree_" + i, new Vector3(xPos, -1.8f + 3.5f, zPos), Quaternion.Euler(0, Random.Range(0f, 360f), Random.Range(-6f, 6f)));
+                if (forestTree != null)
+                {
+                    forestTree.transform.SetParent(forestContainer.transform);
+                    float rndScale = Random.Range(9f, 13f);
+                    forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
+                    forestTree.AddComponent<WindSway>();
+                    
+                    GameObject trunkCol = new GameObject("TrunkCollider");
+                    trunkCol.transform.SetParent(forestTree.transform, false);
+                    trunkCol.transform.localScale = new Vector3(1f/rndScale, 1f/rndScale, 1f/rndScale);
+                    var col = trunkCol.AddComponent<CapsuleCollider>();
+                    col.center = new Vector3(0f, 1.5f, 0f);
+                    col.radius = 0.5f;
+                    col.height = 4.0f;
+                }
+            }
+
+            // Setup Player
+            GameObject player = new GameObject("Player");
+            player.tag = "Player";
+            player.transform.position = new Vector3(20f, -0.8f, -48f);
+
+            var charController = player.AddComponent<CharacterController>();
+            charController.height = 2f;
+            charController.radius = 0.4f;
+            charController.center = new Vector3(0, 1f, 0);
+
+            InputActionAsset inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
+            var playerInput = player.AddComponent<PlayerInput>();
+            if (inputAsset != null)
+            {
+                playerInput.actions = inputAsset;
+                playerInput.defaultActionMap = "Player";
+            }
+            var playerCtrl = player.AddComponent<PlayerController>();
+            var playerInteract = player.AddComponent<PlayerInteraction>();
+
+            GameObject camObj = new GameObject("Main Camera");
+            camObj.tag = "MainCamera";
+            camObj.transform.SetParent(player.transform, false);
+            camObj.transform.localPosition = new Vector3(0, 1.8f, 0);
+            camObj.AddComponent<Camera>();
+            camObj.AddComponent<AudioListener>();
+            var cameraData = camObj.AddComponent<UniversalAdditionalCameraData>();
+            cameraData.renderPostProcessing = true;
+            var photoCam = camObj.AddComponent<PhotoCamera>();
+
+            GameObject cameraHandModel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cameraHandModel.name = "CameraHandModel";
+            cameraHandModel.transform.SetParent(camObj.transform, false);
+            cameraHandModel.transform.localPosition = new Vector3(0.2f, -0.25f, 0.4f);
+            cameraHandModel.transform.localScale = new Vector3(0.12f, 0.08f, 0.1f);
+            DestroyImmediate(cameraHandModel.GetComponent<BoxCollider>());
+
+            new SerializedObject(playerCtrl) { }.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
+            new SerializedObject(playerCtrl).ApplyModifiedProperties();
+            var serInteract = new SerializedObject(playerInteract);
+            serInteract.FindProperty("cameraTransform").objectReferenceValue = camObj.transform;
+            serInteract.FindProperty("interactableLayer").intValue = 1 << LayerMask.NameToLayer("Interactable");
+            serInteract.ApplyModifiedProperties();
+
+            GameObject gameUI = CreateBaseGameUI(photoCam, cameraHandModel, out TextMeshProUGUI objText);
+
+            // Grandpa NPC (Dialogue guide)
+            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(22.0f, -0.95f, -46f), Quaternion.identity);
+            if (grandpa != null)
+            {
+                grandpa.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
+                var col = grandpa.AddComponent<CapsuleCollider>();
+                col.center = new Vector3(0, 0.9f, 0);
+                col.radius = 0.35f;
+                col.height = 1.8f;
+            }
+
+            // Spawn animals
+            List<AnimalAI> spawnedFauna = new List<AnimalAI>();
+            System.Action<string, AnimalAI.AnimalType, Vector3, float, float> spawnAnimal = (name, type, pos, speed, range) => {
+                GameObject obj = null;
+                if (type == AnimalAI.AnimalType.Stork)
+                {
+                    obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    obj.transform.localScale = new Vector3(0.5f, 0.3f, 0.8f);
+                }
+                else if (type == AnimalAI.AnimalType.Snake)
+                {
+                    obj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    obj.transform.localScale = new Vector3(0.12f, 0.8f, 0.12f);
+                    obj.transform.rotation = Quaternion.Euler(90f, 0f, 0f);
+                }
+                else if (type == AnimalAI.AnimalType.Fish)
+                {
+                    obj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    obj.transform.localScale = new Vector3(0.15f, 0.6f, 0.15f);
+                }
+                else if (type == AnimalAI.AnimalType.Butterfly)
+                {
+                    obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    obj.transform.localScale = new Vector3(0.15f, 0.05f, 0.25f);
+                }
+                else if (type == AnimalAI.AnimalType.Duck)
+                {
+                    obj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                    obj.transform.localScale = new Vector3(0.4f, 0.25f, 0.5f);
+                }
+
+                if (obj != null)
+                {
+                    obj.name = name;
+                    obj.layer = LayerMask.NameToLayer("Interactable");
+                    obj.transform.position = pos;
+                    
+                    Material animMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                    if (type == AnimalAI.AnimalType.Stork) animMat.color = Color.white;
+                    else if (type == AnimalAI.AnimalType.Snake) animMat.color = new Color(0.15f, 0.35f, 0.18f);
+                    else if (type == AnimalAI.AnimalType.Fish) animMat.color = new Color(0.18f, 0.22f, 0.42f);
+                    else if (type == AnimalAI.AnimalType.Butterfly) animMat.color = new Color(0.85f, 0.35f, 0.72f);
+                    else if (type == AnimalAI.AnimalType.Duck) animMat.color = new Color(0.42f, 0.32f, 0.18f);
+                    obj.GetComponent<Renderer>().sharedMaterial = animMat;
+
+                    var sCol = obj.AddComponent<SphereCollider>();
+                    sCol.isTrigger = true;
+                    sCol.radius = 1.2f;
+
+                    var ai = obj.AddComponent<AnimalAI>();
+                    var serAI = new SerializedObject(ai);
+                    serAI.FindProperty("animalType").intValue = (int)type;
+                    serAI.FindProperty("speed").floatValue = speed;
+                    serAI.FindProperty("range").floatValue = range;
+                    serAI.ApplyModifiedProperties();
+
+                    spawnedFauna.Add(ai);
+                }
+            };
+
+            spawnAnimal("PerchedStork_1", AnimalAI.AnimalType.Stork, new Vector3(14f, 4.8f, -12f), 7.0f, 0f);
+            spawnAnimal("PerchedStork_2", AnimalAI.AnimalType.Stork, new Vector3(28f, 5.2f, 15f), 7.0f, 0f);
+            spawnAnimal("SwimmingSnake_1", AnimalAI.AnimalType.Snake, new Vector3(22f, -0.95f, -22f), 2.0f, 5f);
+            spawnAnimal("JumpingFish_1", AnimalAI.AnimalType.Fish, new Vector3(18f, -1.5f, -4f), 0f, 0f);
+            spawnAnimal("FlyingButterfly_1", AnimalAI.AnimalType.Butterfly, new Vector3(16f, 0.2f, 8f), 2.5f, 2.2f);
+            spawnAnimal("FloatingDuck_1", AnimalAI.AnimalType.Duck, new Vector3(25f, -0.95f, 6f), 1.5f, 4f);
+
+            // Managers
+            GameObject managersObj = new GameObject("Managers");
+            managersObj.AddComponent<DialogueManager>();
+            managersObj.AddComponent<ScreenFader>();
+            var p4Manager = managersObj.AddComponent<Phase4Manager>();
+
+            var serPhase4 = new SerializedObject(p4Manager);
+            serPhase4.FindProperty("player").objectReferenceValue = player.transform;
+            serPhase4.FindProperty("objectiveText").objectReferenceValue = objText;
+            
+            var animsProp = serPhase4.FindProperty("animals");
+            animsProp.ClearArray();
+            for (int i = 0; i < spawnedFauna.Count; i++)
+            {
+                animsProp.InsertArrayElementAtIndex(i);
+                animsProp.GetArrayElementAtIndex(i).objectReferenceValue = spawnedFauna[i];
+            }
+            serPhase4.ApplyModifiedProperties();
+
+            SetupPostProcessingAndFog(camObj);
+
+            EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase4_Sanctuary.unity");
+            Debug.Log("Successfully created Phase 4 scene!");
+        }
+
+        [MenuItem("Rung Tram Tra Su/Setup Phase 5 Scene")]
+        public static void CreatePhase5Scene()
+        {
+            AssetDatabase.Refresh();
+            CreateLayer("Interactable");
+            var newScene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
+            GameObject defaultCam = GameObject.FindWithTag("MainCamera");
+            if (defaultCam != null) DestroyImmediate(defaultCam);
+
+            GameObject dirLight = GameObject.Find("Directional Light");
+            if (dirLight != null)
+            {
+                dirLight.transform.rotation = Quaternion.Euler(20, -55, 0);
+                var lightComp = dirLight.GetComponent<Light>();
+                if (lightComp != null)
+                {
+                    lightComp.color = new Color(1.0f, 0.95f, 0.82f);
+                    lightComp.intensity = 1.5f;
+                    lightComp.shadows = LightShadows.Soft;
+                }
+            }
+
+            Texture2D grassTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/grass_dirt_texture.png");
+            Material grassMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            if (grassTex != null)
+            {
+                grassMat.mainTexture = grassTex;
+                grassMat.mainTextureScale = new Vector2(20f, 20f);
+            }
+            else grassMat.color = new Color(0.12f, 0.28f, 0.14f);
+
+            Material woodMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            woodMat.color = new Color(0.32f, 0.2f, 0.11f);
+
+            GameObject forestFloor = GameObject.CreatePrimitive(PrimitiveType.Plane);
+            forestFloor.name = "ForestFloor_Ground";
+            forestFloor.transform.position = new Vector3(25f, -0.5f, 15f);
+            forestFloor.transform.localScale = new Vector3(8f, 1f, 8f);
+            forestFloor.GetComponent<Renderer>().sharedMaterial = grassMat;
+
+            // Observation Tower
+            Vector3 towerCenter = new Vector3(25f, -0.5f, 15f);
+            GameObject pillar = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            pillar.name = "ObservationTower_Pillar";
+            pillar.transform.position = towerCenter + new Vector3(0f, 6.0f, 0f);
+            pillar.transform.localScale = new Vector3(2.5f, 6.0f, 2.5f);
+            pillar.GetComponent<Renderer>().sharedMaterial = woodMat;
+
+            // Spiral Steps (36 steps spiraling up)
+            for (int i = 0; i < 36; i++)
+            {
+                GameObject step = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                step.name = "SpiralStep_" + i;
+                float angle = i * 20f * Mathf.Deg2Rad;
+                float x = Mathf.Cos(angle) * 1.6f;
+                float z = Mathf.Sin(angle) * 1.6f;
+                step.transform.position = towerCenter + new Vector3(x, i * 0.31f + 0.15f, z);
+                step.transform.rotation = Quaternion.Euler(0f, -i * 20f, 0f);
+                step.transform.localScale = new Vector3(1.6f, 0.08f, 0.45f);
+                step.GetComponent<Renderer>().sharedMaterial = woodMat;
+            }
+
+            // Viewing Deck Platform
+            GameObject deck = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            deck.name = "ViewingDeck_Platform";
+            deck.transform.position = towerCenter + new Vector3(0f, 11.25f, 0f);
+            deck.transform.localScale = new Vector3(4.8f, 0.08f, 4.8f);
+            deck.GetComponent<Renderer>().sharedMaterial = woodMat;
+
+            // Deck Railings
+            for (int i = 0; i < 8; i++)
+            {
+                GameObject rail = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                rail.name = "DeckRail_" + i;
+                float angle = i * 45f * Mathf.Deg2Rad;
+                float x = Mathf.Cos(angle) * 2.3f;
+                float z = Mathf.Sin(angle) * 2.3f;
+                rail.transform.position = towerCenter + new Vector3(x, 11.8f, z);
+                rail.transform.rotation = Quaternion.Euler(0f, -i * 45f, 0f);
+                rail.transform.localScale = new Vector3(1.7f, 1.0f, 0.08f);
+                rail.GetComponent<Renderer>().sharedMaterial = woodMat;
+            }
+
+            // Spawning 120 trees surrounding the clearing (circle boundary forest)
+            Random.InitState(888);
+            GameObject forestContainer = new GameObject("TeaTree_TowerForest");
+            for (int i = 0; i < 120; i++)
+            {
+                float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+                float radius = Random.Range(24f, 42f);
+                float xPos = towerCenter.x + Mathf.Cos(angle) * radius;
+                float zPos = towerCenter.z + Mathf.Sin(angle) * radius;
+                float yPos = -0.5f;
+
+                GameObject forestTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "TeaTree_" + i, new Vector3(xPos, yPos + 3.5f, zPos), Quaternion.Euler(0, Random.Range(0f, 360f), 0));
+                if (forestTree != null)
+                {
+                    forestTree.transform.SetParent(forestContainer.transform);
+                    float rndScale = Random.Range(9.5f, 13.5f);
+                    forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
+                    forestTree.AddComponent<WindSway>();
+                }
+            }
+
+            // Sunset target
+            GameObject sunsetObj = new GameObject("SunsetQuestTarget");
+            sunsetObj.transform.position = new Vector3(35f, 16f, 120f);
+            sunsetObj.layer = LayerMask.NameToLayer("Interactable");
+            var sunsetCol = sunsetObj.AddComponent<SphereCollider>();
+            sunsetCol.isTrigger = true;
+            sunsetCol.radius = 15f;
+
+            // Setup Player
+            GameObject player = new GameObject("Player");
+            player.tag = "Player";
+            player.transform.position = towerCenter + new Vector3(2.8f, 0.5f, 0f);
+
+            var charController = player.AddComponent<CharacterController>();
+            charController.height = 2f;
+            charController.radius = 0.4f;
+            charController.center = new Vector3(0, 1f, 0);
+
+            InputActionAsset inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
+            var playerInput = player.AddComponent<PlayerInput>();
+            if (inputAsset != null)
+            {
+                playerInput.actions = inputAsset;
+                playerInput.defaultActionMap = "Player";
+            }
+            var playerCtrl = player.AddComponent<PlayerController>();
+            var playerInteract = player.AddComponent<PlayerInteraction>();
+
+            GameObject camObj = new GameObject("Main Camera");
+            camObj.tag = "MainCamera";
+            camObj.transform.SetParent(player.transform, false);
+            camObj.transform.localPosition = new Vector3(0, 1.8f, 0);
+            camObj.AddComponent<Camera>();
+            camObj.AddComponent<AudioListener>();
+            var cameraData = camObj.AddComponent<UniversalAdditionalCameraData>();
+            cameraData.renderPostProcessing = true;
+            var photoCam = camObj.AddComponent<PhotoCamera>();
+
+            GameObject cameraHandModel = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cameraHandModel.name = "CameraHandModel";
+            cameraHandModel.transform.SetParent(camObj.transform, false);
+            cameraHandModel.transform.localPosition = new Vector3(0.2f, -0.25f, 0.4f);
+            cameraHandModel.transform.localScale = new Vector3(0.12f, 0.08f, 0.1f);
+            DestroyImmediate(cameraHandModel.GetComponent<BoxCollider>());
+
+            new SerializedObject(playerCtrl) { }.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
+            new SerializedObject(playerCtrl).ApplyModifiedProperties();
+            var serInteract = new SerializedObject(playerInteract);
+            serInteract.FindProperty("cameraTransform").objectReferenceValue = camObj.transform;
+            serInteract.FindProperty("interactableLayer").intValue = 1 << LayerMask.NameToLayer("Interactable");
+            serInteract.ApplyModifiedProperties();
+
+            GameObject gameUI = CreateBaseGameUI(photoCam, cameraHandModel, out TextMeshProUGUI objText);
+
+            // Grandpa NPC standing on the top deck
+            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", towerCenter + new Vector3(0.8f, 11.25f, 0.8f), Quaternion.Euler(0, 135, 0));
+            if (grandpa != null)
+            {
+                grandpa.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
+                var col = grandpa.AddComponent<CapsuleCollider>();
+                col.center = new Vector3(0, 0.9f, 0);
+                col.radius = 0.35f;
+                col.height = 1.8f;
+            }
+
+            // Build Ending Diary Canvas
+            GameObject diaryCanvas = new GameObject("DiaryCanvas");
+            var dCanvas = diaryCanvas.AddComponent<Canvas>();
+            dCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            diaryCanvas.AddComponent<CanvasScaler>();
+            diaryCanvas.AddComponent<GraphicRaycaster>();
+            diaryCanvas.transform.SetParent(gameUI.transform, false);
+
+            GameObject bgPanel = new GameObject("BackgroundPanel");
+            bgPanel.transform.SetParent(diaryCanvas.transform, false);
+            var bgRect = bgPanel.AddComponent<RectTransform>();
+            bgRect.anchorMin = new Vector2(0.05f, 0.05f);
+            bgRect.anchorMax = new Vector2(0.95f, 0.95f);
+            bgRect.offsetMin = Vector2.zero;
+            bgRect.offsetMax = Vector2.zero;
+            var bgImg = bgPanel.AddComponent<Image>();
+            bgImg.color = new Color(0.12f, 0.1f, 0.08f, 0.96f);
+
+            RawImage[] polaroids = new RawImage[5];
+            for (int i = 0; i < 5; i++)
+            {
+                GameObject polFrame = new GameObject("Polaroid_" + i);
+                polFrame.transform.SetParent(bgPanel.transform, false);
+                var pRect = polFrame.AddComponent<RectTransform>();
+                pRect.anchorMin = new Vector2(0.1f + i * 0.2f, 0.72f);
+                pRect.anchorMax = new Vector2(0.1f + i * 0.2f, 0.72f);
+                pRect.pivot = new Vector2(0.5f, 0.5f);
+                pRect.anchoredPosition = Vector2.zero;
+                pRect.sizeDelta = new Vector2(150f, 175f);
+                var frameImg = polFrame.AddComponent<Image>();
+                frameImg.color = Color.white;
+
+                GameObject polImg = new GameObject("Photo");
+                polImg.transform.SetParent(polFrame.transform, false);
+                var piRect = polImg.AddComponent<RectTransform>();
+                piRect.anchorMin = new Vector2(0.05f, 0.15f);
+                piRect.anchorMax = new Vector2(0.95f, 0.95f);
+                piRect.offsetMin = Vector2.zero;
+                piRect.offsetMax = Vector2.zero;
+                var rImg = polImg.AddComponent<RawImage>();
+                rImg.color = Color.gray;
+                polaroids[i] = rImg;
+            }
+
+            GameObject diaryTextObj = new GameObject("DiaryText");
+            diaryTextObj.transform.SetParent(bgPanel.transform, false);
+            var dtRect = diaryTextObj.AddComponent<RectTransform>();
+            dtRect.anchorMin = new Vector2(0.15f, 0.18f);
+            dtRect.anchorMax = new Vector2(0.85f, 0.48f);
+            dtRect.offsetMin = Vector2.zero;
+            dtRect.offsetMax = Vector2.zero;
+            var dText = diaryTextObj.AddComponent<TextMeshProUGUI>();
+            dText.fontSize = 20;
+            dText.color = new Color(0.95f, 0.9f, 0.82f);
+            dText.text = "Cuốn sổ nhật ký hành trình...";
+
+            GameObject replayBtnObj = new GameObject("ReplayButton");
+            replayBtnObj.transform.SetParent(bgPanel.transform, false);
+            var rbRect = replayBtnObj.AddComponent<RectTransform>();
+            rbRect.anchorMin = new Vector2(0.5f, 0.08f);
+            rbRect.anchorMax = new Vector2(0.5f, 0.08f);
+            rbRect.pivot = new Vector2(0.5f, 0.5f);
+            rbRect.anchoredPosition = Vector2.zero;
+            rbRect.sizeDelta = new Vector2(180, 45);
+            var rbImg = replayBtnObj.AddComponent<Image>();
+            rbImg.color = new Color(0.25f, 0.45f, 0.28f);
+            var btn = replayBtnObj.AddComponent<Button>();
+            
+            GameObject btnTextObj = new GameObject("Text");
+            btnTextObj.transform.SetParent(replayBtnObj.transform, false);
+            var btRect = btnTextObj.AddComponent<RectTransform>();
+            btRect.anchorMin = Vector2.zero;
+            btRect.anchorMax = Vector2.one;
+            btRect.offsetMin = Vector2.zero;
+            btRect.offsetMax = Vector2.zero;
+            var btText = btnTextObj.AddComponent<TextMeshProUGUI>();
+            btText.text = "Chơi Lại";
+            btText.fontSize = 18;
+            btText.alignment = TextAlignmentOptions.Center;
+            btText.color = Color.white;
+
+            // Managers
+            GameObject managersObj = new GameObject("Managers");
+            managersObj.AddComponent<DialogueManager>();
+            managersObj.AddComponent<ScreenFader>();
+            var p5Manager = managersObj.AddComponent<Phase5Manager>();
+
+            var serPhase5 = new SerializedObject(p5Manager);
+            serPhase5.FindProperty("player").objectReferenceValue = player.transform;
+            serPhase5.FindProperty("grandpa").objectReferenceValue = grandpa.transform;
+            serPhase5.FindProperty("dirLight").objectReferenceValue = dirLight.GetComponent<Light>();
+            serPhase5.FindProperty("objectiveText").objectReferenceValue = objText;
+            serPhase5.FindProperty("photoCamera").objectReferenceValue = photoCam;
+            serPhase5.FindProperty("sunsetTarget").objectReferenceValue = sunsetObj.transform;
+            serPhase5.FindProperty("diaryCanvas").objectReferenceValue = diaryCanvas;
+            
+            var pArrayProp = serPhase5.FindProperty("polaroidImages");
+            pArrayProp.ClearArray();
+            for (int i = 0; i < polaroids.Length; i++)
+            {
+                pArrayProp.InsertArrayElementAtIndex(i);
+                pArrayProp.GetArrayElementAtIndex(i).objectReferenceValue = polaroids[i];
+            }
+            serPhase5.FindProperty("diaryText").objectReferenceValue = dText;
+            serPhase5.FindProperty("replayButton").objectReferenceValue = btn;
+            serPhase5.ApplyModifiedProperties();
+
+            SetupPostProcessingAndFog(camObj);
+
+            EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase5_Sunset.unity");
+            Debug.Log("Successfully created Phase 5 scene!");
+        }
+
+        private static GameObject CreateBaseGameUI(PhotoCamera photoCam, GameObject cameraHandModel, out TextMeshProUGUI objectiveTextOut)
+        {
+            GameObject gameUI = new GameObject("GameUI");
+            var canvas = gameUI.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            gameUI.AddComponent<CanvasScaler>();
+            gameUI.AddComponent<GraphicRaycaster>();
+            
+            var interactUI = gameUI.AddComponent<InteractionUI>();
+
+            GameObject promptPanel = new GameObject("InteractionPromptPanel");
+            promptPanel.transform.SetParent(gameUI.transform, false);
+            var promptRect = promptPanel.AddComponent<RectTransform>();
+            promptRect.anchorMin = new Vector2(0.5f, 0.5f);
+            promptRect.anchorMax = new Vector2(0.5f, 0.5f);
+            promptRect.pivot = new Vector2(0.5f, 0.5f);
+            promptRect.anchoredPosition = new Vector2(0, -60);
+            promptRect.sizeDelta = new Vector2(400, 50);
+
+            var promptText = promptPanel.AddComponent<TextMeshProUGUI>();
+            promptText.alignment = TextAlignmentOptions.Center;
+            promptText.fontSize = 20;
+            promptText.color = Color.yellow;
+            promptText.text = "[E] Nói chuyện";
+
+            SerializedObject serIntUI = new SerializedObject(interactUI);
+            serIntUI.FindProperty("promptPanel").objectReferenceValue = promptPanel;
+            serIntUI.FindProperty("promptText").objectReferenceValue = promptText;
+            serIntUI.ApplyModifiedProperties();
+
+            GameObject objTextObj = new GameObject("ObjectiveText");
+            objTextObj.transform.SetParent(gameUI.transform, false);
+            var objRect = objTextObj.AddComponent<RectTransform>();
+            objRect.anchorMin = new Vector2(0.5f, 1f);
+            objRect.anchorMax = new Vector2(0.5f, 1f);
+            objRect.pivot = new Vector2(0.5f, 1f);
+            objRect.anchoredPosition = new Vector2(0, -40);
+            objRect.sizeDelta = new Vector2(800, 60);
+
+            var objText = objTextObj.AddComponent<TextMeshProUGUI>();
+            objText.alignment = TextAlignmentOptions.Center;
+            objText.fontSize = 22;
+            objText.color = Color.white;
+            objText.text = "Mục tiêu: Đang cập nhật...";
+            objectiveTextOut = objText;
+
+            GameObject viewfinderCanvas = new GameObject("ViewfinderCanvas");
+            viewfinderCanvas.transform.SetParent(gameUI.transform, false);
+            var vfRect = viewfinderCanvas.AddComponent<RectTransform>();
+            vfRect.anchorMin = Vector2.zero;
+            vfRect.anchorMax = Vector2.one;
+            vfRect.sizeDelta = Vector2.zero;
+
+            GameObject borderObj = new GameObject("ViewfinderBorder");
+            borderObj.transform.SetParent(viewfinderCanvas.transform, false);
+            var borderRect = borderObj.AddComponent<RectTransform>();
+            borderRect.anchorMin = Vector2.zero;
+            borderRect.anchorMax = Vector2.one;
+            borderRect.sizeDelta = Vector2.zero;
+            var borderImg = borderObj.AddComponent<Image>();
+            borderImg.color = new Color(0, 0, 0, 0.4f);
+
+            GameObject recTextObj = new GameObject("RECText");
+            recTextObj.transform.SetParent(viewfinderCanvas.transform, false);
+            var recRect = recTextObj.AddComponent<RectTransform>();
+            recRect.anchorMin = new Vector2(0.1f, 0.9f);
+            recRect.anchorMax = new Vector2(0.1f, 0.9f);
+            recRect.anchoredPosition = Vector2.zero;
+            recRect.sizeDelta = new Vector2(100, 30);
+            var recText = recTextObj.AddComponent<TextMeshProUGUI>();
+            recText.text = "● REC";
+            recText.color = Color.red;
+            recText.fontSize = 20;
+
+            GameObject flashObj = new GameObject("FlashImage");
+            flashObj.transform.SetParent(gameUI.transform, false);
+            var flashRect = flashObj.AddComponent<RectTransform>();
+            flashRect.anchorMin = Vector2.zero;
+            flashRect.anchorMax = Vector2.one;
+            flashRect.sizeDelta = Vector2.zero;
+            var flashImg = flashObj.AddComponent<Image>();
+            flashImg.color = new Color(1, 1, 1, 0);
+
+            SerializedObject serCam = new SerializedObject(photoCam);
+            serCam.FindProperty("viewfinderCanvas").objectReferenceValue = viewfinderCanvas;
+            serCam.FindProperty("flashImage").objectReferenceValue = flashImg;
+            serCam.FindProperty("normalFOV").floatValue = 60f;
+            serCam.FindProperty("zoomFOV").floatValue = 30f;
+            serCam.FindProperty("occlusionLayers").intValue = 1 << 0;
+            serCam.ApplyModifiedProperties();
+
+            GameObject diagPanel = new GameObject("DialoguePanel");
+            diagPanel.transform.SetParent(gameUI.transform, false);
+            var diagRect = diagPanel.AddComponent<RectTransform>();
+            diagRect.anchorMin = new Vector2(0.5f, 0f);
+            diagRect.anchorMax = new Vector2(0.5f, 0f);
+            diagRect.pivot = new Vector2(0.5f, 0f);
+            diagRect.anchoredPosition = new Vector2(0, 30);
+            diagRect.sizeDelta = new Vector2(700, 160);
+            var diagImg = diagPanel.AddComponent<Image>();
+            diagImg.color = new Color(0.1f, 0.1f, 0.1f, 0.85f);
+
+            GameObject speakerTextObj = new GameObject("SpeakerNameText");
+            speakerTextObj.transform.SetParent(diagPanel.transform, false);
+            var spkRect = speakerTextObj.AddComponent<RectTransform>();
+            spkRect.anchorMin = new Vector2(0f, 1f);
+            spkRect.anchorMax = new Vector2(0f, 1f);
+            spkRect.pivot = new Vector2(0f, 1f);
+            spkRect.anchoredPosition = new Vector2(15, -10);
+            spkRect.sizeDelta = new Vector2(200, 30);
+            var spkText = speakerTextObj.AddComponent<TextMeshProUGUI>();
+            spkText.fontSize = 20;
+            spkText.color = Color.green;
+            spkText.text = "Ông Ngoại";
+
+            GameObject dialogueTextObj = new GameObject("DialogueText");
+            dialogueTextObj.transform.SetParent(diagPanel.transform, false);
+            var textRect = dialogueTextObj.AddComponent<RectTransform>();
+            textRect.anchorMin = new Vector2(0f, 0f);
+            textRect.anchorMax = new Vector2(1f, 1f);
+            textRect.offsetMin = new Vector2(15, 15);
+            textRect.offsetMax = new Vector2(-15, -45);
+            var diagTextComp = dialogueTextObj.AddComponent<TextMeshProUGUI>();
+            diagTextComp.fontSize = 18;
+            diagTextComp.color = Color.white;
+            diagTextComp.text = "Đang chạy lời thoại...";
+
+            GameObject continueIndicator = new GameObject("ContinueIndicator");
+            continueIndicator.transform.SetParent(diagPanel.transform, false);
+            var cntRect = continueIndicator.AddComponent<RectTransform>();
+            cntRect.anchorMin = new Vector2(1f, 0f);
+            cntRect.anchorMax = new Vector2(1f, 0f);
+            cntRect.pivot = new Vector2(1f, 0f);
+            cntRect.anchoredPosition = new Vector2(-15, 10);
+            cntRect.sizeDelta = new Vector2(120, 25);
+            var cntText = continueIndicator.AddComponent<TextMeshProUGUI>();
+            cntText.fontSize = 14;
+            cntText.color = Color.gray;
+            cntText.text = "[Click / Space] Tiếp tục";
+
+            GameObject faderCanvasObj = new GameObject("FaderCanvas");
+            var faderCanvas = faderCanvasObj.AddComponent<Canvas>();
+            faderCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            faderCanvas.sortingOrder = 999;
+            faderCanvasObj.AddComponent<CanvasScaler>();
+            faderCanvasObj.AddComponent<GraphicRaycaster>();
+            var screenFader = faderCanvasObj.AddComponent<ScreenFader>();
+
+            GameObject fadeImgObj = new GameObject("FadeImage");
+            fadeImgObj.transform.SetParent(faderCanvasObj.transform, false);
+            var fimgRect = fadeImgObj.AddComponent<RectTransform>();
+            fimgRect.anchorMin = Vector2.zero;
+            fimgRect.anchorMax = Vector2.one;
+            fimgRect.sizeDelta = Vector2.zero;
+            var fImg = fadeImgObj.AddComponent<Image>();
+            fImg.color = Color.black;
+
+            SerializedObject serFade = new SerializedObject(screenFader);
+            serFade.FindProperty("fadeImage").objectReferenceValue = fImg;
+            serFade.ApplyModifiedProperties();
+
+            return gameUI;
+        }
+
+        private static void SetupPostProcessingAndFog(GameObject camObj)
+        {
+            RenderSettings.fog = true;
+            RenderSettings.fogColor = new Color(0.60f, 0.73f, 0.65f);
+            RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogDensity = 0.022f;
+
+            GameObject volumeObj = new GameObject("Global PostProcess Volume");
+            var volume = volumeObj.AddComponent<Volume>();
+            volume.isGlobal = true;
+
+            VolumeProfile profile = ScriptableObject.CreateInstance<VolumeProfile>();
+
+            var tonemapping = profile.Add<Tonemapping>();
+            tonemapping.active = true;
+            tonemapping.mode.Override(TonemappingMode.ACES);
+
+            var bloom = profile.Add<Bloom>();
+            bloom.active = true;
+            bloom.threshold.Override(0.78f);
+            bloom.intensity.Override(2.2f);
+            bloom.scatter.Override(0.72f);
+            bloom.tint.Override(new Color(1f, 0.94f, 0.80f));
+
+            var colorAdjust = profile.Add<ColorAdjustments>();
+            colorAdjust.active = true;
+            colorAdjust.contrast.Override(25f);
+            colorAdjust.saturation.Override(32f);
+            colorAdjust.postExposure.Override(0.24f);
+
+            var vignette = profile.Add<Vignette>();
+            vignette.active = true;
+            vignette.intensity.Override(0.28f);
+            vignette.smoothness.Override(0.4f);
+            vignette.rounded.Override(true);
+
+            volume.sharedProfile = profile;
+        }
     }
 }
+

@@ -127,7 +127,11 @@ namespace RungTramTraSu
             // Khôi phục lại UI
             if (isZooming && viewfinderCanvas != null) viewfinderCanvas.SetActive(true);
 
-            // Lưu ảnh vào GameManager/PhaseManager
+            // Lưu ảnh vào PersistentGameManager hoặc Phase1Manager
+            if (PersistentGameManager.Instance != null)
+            {
+                PersistentGameManager.Instance.SavePhoto(capturedTex);
+            }
             if (Phase1Manager.Instance != null)
             {
                 Phase1Manager.Instance.SavePhoto(capturedTex);
@@ -184,10 +188,11 @@ namespace RungTramTraSu
 
                 // Chụp ảnh thành công! Báo về Phase1Manager
                 Debug.Log("Chụp ảnh mục tiêu thành công!");
-                if (Phase1Manager.Instance != null)
-                {
-                    Phase1Manager.Instance.OnPhotoQuestCompleted();
-                }
+                if (Phase1Manager.Instance != null) Phase1Manager.Instance.OnPhotoQuestCompleted();
+                if (Phase2Manager.Instance != null) Phase2Manager.Instance.OnPhotoQuestCompleted();
+                if (Phase3Manager.Instance != null) Phase3Manager.Instance.OnPhotoQuestCompleted();
+                if (Phase4Manager.Instance != null) Phase4Manager.Instance.OnPhotoQuestCompleted();
+                if (Phase5Manager.Instance != null) Phase5Manager.Instance.OnPhotoQuestCompleted();
             }
             else
             {

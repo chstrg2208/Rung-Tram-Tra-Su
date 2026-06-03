@@ -31,15 +31,43 @@ namespace RungTramTraSu
             }
         }
 
+        private void Start()
+        {
+            if (interactAction == null)
+            {
+                Debug.LogError("[PlayerInteraction] Interact Action is null! Please check Input Action Asset assignment.");
+            }
+            else
+            {
+                Debug.Log($"[PlayerInteraction] Interact Action found: {interactAction.name}, Enabled: {interactAction.enabled}");
+            }
+        }
+
+        private void OnEnable()
+        {
+            if (interactAction != null)
+            {
+                interactAction.started += OnInteractActionStarted;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (interactAction != null)
+            {
+                interactAction.started -= OnInteractActionStarted;
+            }
+        }
+
+        private void OnInteractActionStarted(InputAction.CallbackContext context)
+        {
+            Debug.Log("[PlayerInteraction] Interact action started via callback event!");
+            TryInteract();
+        }
+
         private void Update()
         {
             CheckInteractable();
-
-            // Nếu nhấn nút Tương tác (E) và có đối tượng tương tác
-            if (interactAction != null && interactAction.triggered)
-            {
-                TryInteract();
-            }
         }
 
         private void CheckInteractable()
@@ -49,22 +77,27 @@ namespace RungTramTraSu
             Ray ray = new Ray(cameraTransform.position, cameraTransform.forward);
             RaycastHit hit;
 
-            // Bắn tia raycast
-            if (Physics.Raycast(ray, out hit, interactDistance, interactableLayer))
+            // Bắn tia raycast không lọc layer trước để xem nó có đâm trúng gì không
+            if (Physics.Raycast(ray, out hit, interactDistance))
             {
-                // Kiểm tra xem đối tượng có Component triển khai IInteractable không
                 IInteractable interactable = hit.collider.GetComponent<IInteractable>();
-                
-                // Nếu là đối tượng mới
                 if (interactable != null)
                 {
-                    if (interactable != currentInteractable)
+                    // Lọc theo layer mask
+                    if (((1 << hit.collider.gameObject.layer) & interactableLayer) != 0)
                     {
-                        currentInteractable = interactable;
-                        // Phát sự kiện tìm thấy để UI hiển thị thông báo gợi ý
-                        OnInteractableFound?.Invoke(currentInteractable.GetInteractPrompt());
+                        if (interactable != currentInteractable)
+                        {
+                            currentInteractable = interactable;
+                            Debug.Log($"[PlayerInteraction] Found interactable: {hit.collider.name} on layer {hit.collider.gameObject.layer}");
+                            OnInteractableFound?.Invoke(currentInteractable.GetInteractPrompt());
+                        }
+                        return;
                     }
-                    return; // Thoát sớm nếu vẫn đang nhìn đối tượng đó
+                    else
+                    {
+                        Debug.LogWarning($"[PlayerInteraction] Looked at {hit.collider.name} which has IInteractable, but its layer ({hit.collider.gameObject.layer}) is not in mask ({interactableLayer.value})");
+                    }
                 }
             }
 
@@ -72,7 +105,7 @@ namespace RungTramTraSu
             if (currentInteractable != null)
             {
                 currentInteractable = null;
-                // Phát sự kiện mất đối tượng để UI ẩn đi thông báo gợi ý
+                Debug.Log("[PlayerInteraction] Lost interactable target");
                 OnInteractableLost?.Invoke();
             }
         }
@@ -81,7 +114,12 @@ namespace RungTramTraSu
         {
             if (currentInteractable != null)
             {
+                Debug.Log($"[PlayerInteraction] Interacting with: {currentInteractable}");
                 currentInteractable.Interact();
+            }
+            else
+            {
+                Debug.LogWarning("[PlayerInteraction] TryInteract called but currentInteractable is null!");
             }
         }
     }
