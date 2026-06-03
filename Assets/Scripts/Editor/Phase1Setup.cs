@@ -233,6 +233,9 @@ namespace RungTramTraSu
                 boatTriggerZone.AddComponent<BoatTrigger>();
             }
 
+            // Biển báo gỗ mộc mạc tại bến xuồng
+            CreateScenicWoodenSign("Kênh Dẫn Trà Sư\n(Bến Xuồng Ông Ngoại)", new Vector3(12.5f, pierGroundY + 0.8f, 6.5f), -35f);
+
             // 4. Cây Xoài nhiệm vụ đặt ở góc vườn thoáng (Có cao độ hữu cơ)
             float mangoY = GetHeightAt(-3f, 14f);
             GameObject mangoTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "Mango_Tree_Target", new Vector3(-3f, mangoY + 3.5f, 14f), Quaternion.identity);
@@ -319,6 +322,10 @@ namespace RungTramTraSu
                     col.center = new Vector3(0f, 1.5f, 0f);
                     col.radius = 0.5f;
                     col.height = 4.0f;
+
+                    // Phát triển ngoại cảnh: Rễ thở tràm sinh ngẫu nhiên quanh gốc và cò trắng đậu trên ngọn
+                    CreateBreathingRootsAroundTree(treePos, forestContainer.transform, Random.Range(3, 7));
+                    CreateBirdInTree(treePos, forestTree.transform);
                 }
             }
 
@@ -347,6 +354,12 @@ namespace RungTramTraSu
                 // Hủy va chạm để tránh gây cản trở thuyền hoặc người chơi
                 DestroyImmediate(pad.GetComponent<Collider>());
                 pad.GetComponent<Renderer>().sharedMaterial = lilyMat;
+
+                // Sinh hoa súng hồng rực rỡ nổi trên thảm bèo xanh
+                if (Random.value < 0.35f)
+                {
+                    CreateLotusFlower(new Vector3(xPos, yPos, zPos), pad.transform);
+                }
             }
 
             // --- SINH RẶNG SẬY / CỎ VEN BỜ (SHORELINE REEDS) ---
@@ -999,6 +1012,9 @@ namespace RungTramTraSu
             woodMat.color = new Color(0.32f, 0.2f, 0.11f);
             startPier.GetComponent<Renderer>().sharedMaterial = woodMat;
 
+            // Biển báo gỗ mộc mạc đầu kênh dẫn
+            CreateScenicWoodenSign("Kênh Dẫn Trà Sư\n(Mùa Nước Nổi)", new Vector3(22f, -0.4f, -54f), -30f);
+
             GameObject endPier = GameObject.CreatePrimitive(PrimitiveType.Cube);
             endPier.name = "EndPier";
             float endPierY = GetHeightAt(25f, 55f);
@@ -1028,6 +1044,10 @@ namespace RungTramTraSu
                     float rndScale = Random.Range(9.5f, 13.5f);
                     forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
                     forestTree.AddComponent<WindSway>();
+
+                    // Thêm rễ thở và cò trắng
+                    CreateBreathingRootsAroundTree(new Vector3(xPos, yPos + 3.5f, zPos), forestContainer.transform, Random.Range(2, 6));
+                    CreateBirdInTree(new Vector3(xPos, yPos + 3.5f, zPos), forestTree.transform);
                 }
             }
 
@@ -1039,13 +1059,21 @@ namespace RungTramTraSu
             {
                 float zPos = Random.Range(-45f, 45f);
                 float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
+                float xPos = canalCenter + Random.Range(-5f, 5f);
+                float yPos = -0.98f;
                 GameObject pad = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
                 pad.name = "LilyPad_" + i;
                 pad.transform.SetParent(lilyContainer.transform);
-                pad.transform.position = new Vector3(canalCenter + Random.Range(-5f, 5f), -0.98f, zPos);
+                pad.transform.position = new Vector3(xPos, yPos, zPos);
                 pad.transform.localScale = new Vector3(Random.Range(0.6f, 1.4f), 0.01f, Random.Range(0.6f, 1.4f));
                 DestroyImmediate(pad.GetComponent<Collider>());
                 pad.GetComponent<Renderer>().sharedMaterial = lilyMat;
+
+                // Sinh hoa súng hồng rực rỡ nổi trên thảm bèo xanh
+                if (Random.value < 0.35f)
+                {
+                    CreateLotusFlower(new Vector3(xPos, yPos, zPos), pad.transform);
+                }
             }
 
             GameObject reedContainer = new GameObject("ShorelineReeds");
@@ -1275,6 +1303,9 @@ namespace RungTramTraSu
                 }
             }
 
+            // Biển báo gỗ mộc mạc tại cầu tre
+            CreateScenicWoodenSign("Cầu Tre Vạn Bước\n(Lõi Rừng Tràm)", new Vector3(5f + Mathf.Sin(-45f * 0.12f) * 6f - 2f, -0.3f, -48f), 15f);
+
             // Spawning 150 dense trees (Deep forest feel)
             Random.InitState(9999);
             GameObject forestContainer = new GameObject("TeaTree_DenseForest");
@@ -1292,6 +1323,10 @@ namespace RungTramTraSu
                     forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
                     forestTree.AddComponent<WindSway>();
 
+                    // Phát triển ngoại cảnh: Rễ thở tràm sinh ngẫu nhiên quanh gốc và cò trắng đậu trên ngọn
+                    CreateBreathingRootsAroundTree(new Vector3(xPos, -1.8f + 3.5f, zPos), forestContainer.transform, Random.Range(2, 6));
+                    CreateBirdInTree(new Vector3(xPos, -1.8f + 3.5f, zPos), forestTree.transform);
+
                     GameObject trunkCol = new GameObject("TrunkCollider");
                     trunkCol.transform.SetParent(forestTree.transform, false);
                     trunkCol.transform.localScale = new Vector3(1f/rndScale, 1f/rndScale, 1f/rndScale);
@@ -1299,6 +1334,35 @@ namespace RungTramTraSu
                     col.center = new Vector3(0f, 1.5f, 0f);
                     col.radius = 0.5f;
                     col.height = 4.0f;
+                }
+            }
+
+            // Lily pads & reeds for Phase 3 (swamp water)
+            GameObject lilyContainer = new GameObject("FloatingLilyPads");
+            Material lilyMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            lilyMat.color = new Color(0.12f, 0.45f, 0.22f);
+            for (int i = 0; i < 60; i++)
+            {
+                float zPos = Random.Range(-50f, 50f);
+                float xCenter = 5f + Mathf.Sin(zPos * 0.12f) * 6f;
+                
+                // Lily pads float in water, not on the bridge
+                float xPos = xCenter + Random.Range(2.5f, 12f) * (Random.value > 0.5f ? 1f : -1f);
+                float yPos = -0.98f;
+                
+                GameObject pad = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                pad.name = "LilyPad_" + i;
+                pad.transform.SetParent(lilyContainer.transform);
+                pad.transform.position = new Vector3(xPos, yPos, zPos);
+                float padScale = Random.Range(0.6f, 1.4f);
+                pad.transform.localScale = new Vector3(padScale, 0.01f, padScale);
+                pad.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                DestroyImmediate(pad.GetComponent<Collider>());
+                pad.GetComponent<Renderer>().sharedMaterial = lilyMat;
+                
+                if (Random.value < 0.35f)
+                {
+                    CreateLotusFlower(new Vector3(xPos, yPos, zPos), pad.transform);
                 }
             }
 
@@ -1460,6 +1524,9 @@ namespace RungTramTraSu
             DestroyImmediate(water.GetComponent<MeshCollider>());
             water.GetComponent<Renderer>().sharedMaterial = waterMat;
 
+            // Biển báo gỗ mộc mạc tại khu bảo tồn
+            CreateScenicWoodenSign("Khu Bảo Tồn Đầm Lầy\n(Yêu Cầu Đi Nhẹ Nói Khẽ)", new Vector3(22f, -0.8f, -46f), 10f);
+
             // Spawning 150 cajuput trees (dense sanctuary forest!)
             Random.InitState(777);
             GameObject forestContainer = new GameObject("TeaTree_SanctuaryForest");
@@ -1479,6 +1546,10 @@ namespace RungTramTraSu
                     float rndScale = Random.Range(9f, 13f);
                     forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
                     forestTree.AddComponent<WindSway>();
+
+                    // Phát triển ngoại cảnh: Rễ thở tràm sinh ngẫu nhiên quanh gốc và cò trắng đậu trên ngọn
+                    CreateBreathingRootsAroundTree(new Vector3(xPos, -1.8f + 3.5f, zPos), forestContainer.transform, Random.Range(2, 6));
+                    CreateBirdInTree(new Vector3(xPos, -1.8f + 3.5f, zPos), forestTree.transform);
                     
                     GameObject trunkCol = new GameObject("TrunkCollider");
                     trunkCol.transform.SetParent(forestTree.transform, false);
@@ -1487,6 +1558,32 @@ namespace RungTramTraSu
                     col.center = new Vector3(0f, 1.5f, 0f);
                     col.radius = 0.5f;
                     col.height = 4.0f;
+                }
+            }
+
+            // Lily pads & reeds for Phase 4 (swamp sanctuary water)
+            GameObject lilyContainer = new GameObject("FloatingLilyPads");
+            Material lilyMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            lilyMat.color = new Color(0.12f, 0.45f, 0.22f);
+            for (int i = 0; i < 60; i++)
+            {
+                float zPos = Random.Range(-50f, 50f);
+                float xPos = Random.Range(-20f, 60f);
+                float yPos = -0.98f;
+                
+                GameObject pad = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                pad.name = "LilyPad_" + i;
+                pad.transform.SetParent(lilyContainer.transform);
+                pad.transform.position = new Vector3(xPos, yPos, zPos);
+                float padScale = Random.Range(0.6f, 1.4f);
+                pad.transform.localScale = new Vector3(padScale, 0.01f, padScale);
+                pad.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
+                DestroyImmediate(pad.GetComponent<Collider>());
+                pad.GetComponent<Renderer>().sharedMaterial = lilyMat;
+                
+                if (Random.value < 0.35f)
+                {
+                    CreateLotusFlower(new Vector3(xPos, yPos, zPos), pad.transform);
                 }
             }
 
@@ -1722,6 +1819,9 @@ namespace RungTramTraSu
                 rail.GetComponent<Renderer>().sharedMaterial = woodMat;
             }
 
+            // Biển báo gỗ mộc mạc tại vọng cảnh đài
+            CreateScenicWoodenSign("Vọng Cảnh Đài\n(Đỉnh Kính Vọng)", new Vector3(towerCenter.x + 3f, -0.3f, 10f), -20f);
+
             // Spawning 120 trees surrounding the clearing (circle boundary forest)
             Random.InitState(888);
             GameObject forestContainer = new GameObject("TeaTree_TowerForest");
@@ -1740,6 +1840,10 @@ namespace RungTramTraSu
                     float rndScale = Random.Range(9.5f, 13.5f);
                     forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
                     forestTree.AddComponent<WindSway>();
+
+                    // Phát triển ngoại cảnh: Rễ thở tràm sinh ngẫu nhiên quanh gốc và cò trắng đậu trên ngọn
+                    CreateBreathingRootsAroundTree(new Vector3(xPos, yPos + 3.5f, zPos), forestContainer.transform, Random.Range(2, 6));
+                    CreateBirdInTree(new Vector3(xPos, yPos + 3.5f, zPos), forestTree.transform);
                 }
             }
 
@@ -2122,6 +2226,181 @@ namespace RungTramTraSu
             vignette.rounded.Override(true);
 
             volume.sharedProfile = profile;
+        }
+
+        private static void CreateLotusFlower(Vector3 position, Transform parent)
+        {
+            GameObject flower = new GameObject("LotusFlower");
+            flower.transform.SetParent(parent, false);
+            flower.transform.position = position + new Vector3(0f, 0.02f, 0f); // Hơi nhô lên trên lá bèo
+
+            Material petalMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            petalMat.color = new Color(0.96f, 0.52f, 0.74f); // Hồng nhạt hoa sen/súng
+            if (petalMat.HasProperty("_Smoothness")) petalMat.SetFloat("_Smoothness", 0.1f);
+
+            Material centerMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            centerMat.color = new Color(1.0f, 0.84f, 0f); // Nhụy vàng
+
+            // Nhụy tròn ở giữa
+            GameObject center = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            center.name = "Pistil";
+            center.transform.SetParent(flower.transform, false);
+            center.transform.localScale = new Vector3(0.18f, 0.08f, 0.18f);
+            center.transform.localPosition = new Vector3(0, 0.02f, 0);
+            center.GetComponent<Renderer>().sharedMaterial = centerMat;
+            DestroyImmediate(center.GetComponent<Collider>());
+
+            // 6 cánh hoa xung quanh xếp tròn xòe
+            for (int i = 0; i < 6; i++)
+            {
+                float angle = i * 60f * Mathf.Deg2Rad;
+                GameObject petal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                petal.name = "Petal_" + i;
+                petal.transform.SetParent(flower.transform, false);
+                petal.transform.localScale = new Vector3(0.06f, 0.01f, 0.22f);
+
+                float x = Mathf.Sin(angle) * 0.1f;
+                float z = Mathf.Cos(angle) * 0.1f;
+                petal.transform.localPosition = new Vector3(x, 0.01f, z);
+                petal.transform.localRotation = Quaternion.Euler(15f, i * 60f, 0f);
+
+                petal.GetComponent<Renderer>().sharedMaterial = petalMat;
+                DestroyImmediate(petal.GetComponent<Collider>());
+            }
+        }
+
+        private static void CreateBreathingRootsAroundTree(Vector3 treePosition, Transform parent, int count)
+        {
+            Material rootMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            rootMat.color = new Color(0.26f, 0.16f, 0.10f); // Nâu vỏ cây tràm
+            if (rootMat.HasProperty("_Smoothness")) rootMat.SetFloat("_Smoothness", 0.05f);
+
+            for (int i = 0; i < count; i++)
+            {
+                // Sinh ngẫu nhiên vòng quanh gốc cây từ 0.6m đến 1.8m
+                float angle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+                float distance = Random.Range(0.6f, 1.8f);
+                float x = treePosition.x + Mathf.Sin(angle) * distance;
+                float z = treePosition.z + Mathf.Cos(angle) * distance;
+                float y = -1.02f; // Chân rễ cắm dưới nước
+
+                GameObject spike = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                spike.name = "BreathingRoot_Spike";
+                spike.transform.SetParent(parent, false);
+
+                float height = Random.Range(0.25f, 0.65f); // Cao khoảng 25cm - 65cm
+                spike.transform.position = new Vector3(x, y + height * 0.5f, z);
+
+                float radius = Random.Range(0.04f, 0.09f); // Rễ thở nhỏ nhọn
+                spike.transform.localScale = new Vector3(radius, height, radius);
+                spike.transform.rotation = Quaternion.Euler(Random.Range(-5f, 5f), 0f, Random.Range(-5f, 5f));
+
+                spike.GetComponent<Renderer>().sharedMaterial = rootMat;
+                DestroyImmediate(spike.GetComponent<Collider>());
+            }
+        }
+
+        private static void CreateBirdInTree(Vector3 treePosition, Transform parent)
+        {
+            // Tỷ lệ 20% mỗi cây tràm có cò trắng đậu làm tổ
+            if (Random.value > 0.2f) return;
+
+            GameObject bird = new GameObject("RestingStork");
+            bird.transform.SetParent(parent, false);
+
+            // Cò đậu ở tầng lá cao từ 8m đến 13m
+            float height = Random.Range(8f, 13f);
+            float offsetAngle = Random.Range(0f, 360f) * Mathf.Deg2Rad;
+            float offsetDist = Random.Range(0.4f, 1.2f);
+            float x = treePosition.x + Mathf.Sin(offsetAngle) * offsetDist;
+            float z = treePosition.z + Mathf.Cos(offsetAngle) * offsetDist;
+
+            bird.transform.position = new Vector3(x, treePosition.y + height, z);
+            bird.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
+
+            Material bodyMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            bodyMat.color = Color.white;
+
+            Material beakMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            beakMat.color = new Color(1.0f, 0.6f, 0.0f); // Mỏ vàng cam
+
+            // Thân cò
+            GameObject body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            body.name = "Body";
+            body.transform.SetParent(bird.transform, false);
+            body.transform.localScale = new Vector3(0.4f, 0.25f, 0.6f);
+            body.GetComponent<Renderer>().sharedMaterial = bodyMat;
+            DestroyImmediate(body.GetComponent<Collider>());
+
+            // Cổ/đầu
+            GameObject head = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            head.name = "Head";
+            head.transform.SetParent(bird.transform, false);
+            head.transform.localScale = new Vector3(0.18f, 0.35f, 0.18f);
+            head.transform.localPosition = new Vector3(0f, 0.25f, 0.2f);
+            head.GetComponent<Renderer>().sharedMaterial = bodyMat;
+            DestroyImmediate(head.GetComponent<Collider>());
+
+            // Mỏ dài kiêu sa
+            GameObject beak = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            beak.name = "Beak";
+            beak.transform.SetParent(bird.transform, false);
+            beak.transform.localScale = new Vector3(0.06f, 0.06f, 0.4f);
+            beak.transform.localPosition = new Vector3(0f, 0.35f, 0.45f);
+            beak.GetComponent<Renderer>().sharedMaterial = beakMat;
+            DestroyImmediate(beak.GetComponent<Collider>());
+        }
+
+        private static void CreateScenicWoodenSign(string mainText, Vector3 position, float rotationY)
+        {
+            GameObject signObj = new GameObject("WoodenSign_" + mainText.Replace("\n", "_"));
+            signObj.transform.position = position;
+            signObj.transform.rotation = Quaternion.Euler(0f, rotationY, 0f);
+
+            Material woodMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+            woodMat.color = new Color(0.35f, 0.22f, 0.12f); // Gỗ nâu mộc mạc
+            if (woodMat.HasProperty("_Smoothness")) woodMat.SetFloat("_Smoothness", 0.05f);
+
+            // Cột biển
+            GameObject post = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            post.name = "Post";
+            post.transform.SetParent(signObj.transform, false);
+            post.transform.localPosition = new Vector3(0f, 0.8f, 0f);
+            post.transform.localScale = new Vector3(0.12f, 1.6f, 0.12f);
+            post.GetComponent<Renderer>().sharedMaterial = woodMat;
+
+            // Bảng gỗ biển
+            GameObject board = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            board.name = "Board";
+            board.transform.SetParent(signObj.transform, false);
+            board.transform.localPosition = new Vector3(0f, 1.4f, 0f);
+            board.transform.localScale = new Vector3(1.2f, 0.5f, 0.06f);
+            board.GetComponent<Renderer>().sharedMaterial = woodMat;
+
+            // Canvas hiển thị chữ trong không gian 3D
+            GameObject canvasObj = new GameObject("SignCanvas");
+            canvasObj.transform.SetParent(board.transform, false);
+            canvasObj.transform.localPosition = new Vector3(0f, 0f, 0.04f); // Nhô ra trước biển
+            canvasObj.transform.localRotation = Quaternion.identity;
+
+            var canvas = canvasObj.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.WorldSpace;
+            var rect = canvasObj.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(1.2f, 0.5f);
+            rect.localScale = Vector3.one;
+
+            GameObject textObj = new GameObject("Text");
+            textObj.transform.SetParent(canvasObj.transform, false);
+            var textRect = textObj.AddComponent<RectTransform>();
+            textRect.anchorMin = Vector2.zero;
+            textRect.anchorMax = Vector2.one;
+            textRect.sizeDelta = Vector2.zero;
+
+            var tmp = textObj.AddComponent<TextMeshProUGUI>();
+            tmp.text = mainText;
+            tmp.fontSize = 0.14f; // Kích thước chữ 3D chuẩn thế giới thực
+            tmp.color = Color.yellow;
+            tmp.alignment = TextAlignmentOptions.Center;
         }
     }
 }
