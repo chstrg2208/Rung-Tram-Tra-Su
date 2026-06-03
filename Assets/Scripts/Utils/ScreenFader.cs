@@ -14,22 +14,17 @@ namespace RungTramTraSu
 
         private void Awake()
         {
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
-            {
-                Destroy(gameObject);
-                return;
-            }
-
             if (fadeImage != null)
             {
+                Instance = this;
                 // Khởi đầu là màn hình đen hoàn toàn
                 fadeImage.gameObject.SetActive(true);
                 fadeImage.color = Color.black;
+            }
+            else
+            {
+                // Nếu không có fadeImage, đây là component thừa/nhầm lẫn trên Managers, tự hủy component để tránh ảnh hưởng đến Managers khác
+                Destroy(this);
             }
         }
 

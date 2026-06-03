@@ -1144,7 +1144,6 @@ namespace RungTramTraSu
 
             GameObject managersObj = new GameObject("Managers");
             managersObj.AddComponent<DialogueManager>();
-            managersObj.AddComponent<ScreenFader>();
             var p2Manager = managersObj.AddComponent<Phase2Manager>();
 
             var serPhase2 = new SerializedObject(p2Manager);
@@ -1377,7 +1376,6 @@ namespace RungTramTraSu
             // Managers
             GameObject managersObj = new GameObject("Managers");
             managersObj.AddComponent<DialogueManager>();
-            managersObj.AddComponent<ScreenFader>();
             var p3Manager = managersObj.AddComponent<Phase3Manager>();
 
             var serPhase3 = new SerializedObject(p3Manager);
@@ -1605,7 +1603,6 @@ namespace RungTramTraSu
             // Managers
             GameObject managersObj = new GameObject("Managers");
             managersObj.AddComponent<DialogueManager>();
-            managersObj.AddComponent<ScreenFader>();
             var p4Manager = managersObj.AddComponent<Phase4Manager>();
 
             var serPhase4 = new SerializedObject(p4Manager);
@@ -1880,7 +1877,6 @@ namespace RungTramTraSu
             // Managers
             GameObject managersObj = new GameObject("Managers");
             managersObj.AddComponent<DialogueManager>();
-            managersObj.AddComponent<ScreenFader>();
             var p5Manager = managersObj.AddComponent<Phase5Manager>();
 
             var serPhase5 = new SerializedObject(p5Manager);
