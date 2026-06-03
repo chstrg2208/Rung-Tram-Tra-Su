@@ -5,18 +5,32 @@ namespace RungTramTraSu
 {
     public class PersistentGameManager : MonoBehaviour
     {
-        public static PersistentGameManager Instance { get; private set; }
+        private static PersistentGameManager instance;
+
+        public static PersistentGameManager Instance
+        {
+            get
+            {
+                if (instance == null)
+                {
+                    GameObject go = new GameObject("PersistentGameManager");
+                    instance = go.AddComponent<PersistentGameManager>();
+                    DontDestroyOnLoad(go);
+                }
+                return instance;
+            }
+        }
 
         public List<Texture2D> savedPhotos = new List<Texture2D>();
 
         private void Awake()
         {
-            if (Instance == null)
+            if (instance == null)
             {
-                Instance = this;
+                instance = this;
                 DontDestroyOnLoad(gameObject);
             }
-            else
+            else if (instance != this)
             {
                 Destroy(gameObject);
             }

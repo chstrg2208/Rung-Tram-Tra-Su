@@ -28,18 +28,34 @@ namespace RungTramTraSu
 
         private void Awake()
         {
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-            }
-            else
-            {
-                Destroy(gameObject);
-                return;
-            }
+            Instance = this;
 
             sentences = new Queue<string>();
+
+            // Tự động tìm kiếm và gán các trường UI nếu chưa được liên kết
+            if (dialoguePanel == null)
+            {
+                dialoguePanel = GameObject.Find("DialoguePanel");
+            }
+            if (dialoguePanel != null)
+            {
+                if (speakerNameText == null)
+                {
+                    Transform t = dialoguePanel.transform.Find("SpeakerNameText");
+                    if (t != null) speakerNameText = t.GetComponent<TextMeshProUGUI>();
+                }
+                if (dialogueText == null)
+                {
+                    Transform t = dialoguePanel.transform.Find("DialogueText");
+                    if (t != null) dialogueText = t.GetComponent<TextMeshProUGUI>();
+                }
+                if (continueIndicator == null)
+                {
+                    Transform t = dialoguePanel.transform.Find("ContinueIndicator");
+                    if (t != null) continueIndicator = t.gameObject;
+                }
+            }
+
             if (dialoguePanel != null) dialoguePanel.SetActive(false);
             if (continueIndicator != null) continueIndicator.SetActive(false);
         }
