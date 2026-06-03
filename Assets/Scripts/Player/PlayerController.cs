@@ -53,6 +53,12 @@ namespace RungTramTraSu
             crouchAction = playerInput.actions["Crouch"];
             
             targetCameraY = cameraStandingY;
+
+            // Tự động tìm kiếm camera nếu bị trống do lỗi liên kết ở các Phase sau
+            if (playerCamera == null && Camera.main != null)
+            {
+                playerCamera = Camera.main.transform;
+            }
         }
 
         private void OnEnable()

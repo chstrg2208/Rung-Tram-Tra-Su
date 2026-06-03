@@ -1145,8 +1145,9 @@ namespace RungTramTraSu
             cameraHandModel.transform.localScale = new Vector3(0.12f, 0.08f, 0.1f);
             DestroyImmediate(cameraHandModel.GetComponent<BoxCollider>());
 
-            new SerializedObject(playerCtrl) { }.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
-            new SerializedObject(playerCtrl).ApplyModifiedProperties();
+            SerializedObject serPlayer = new SerializedObject(playerCtrl);
+            serPlayer.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
+            serPlayer.ApplyModifiedProperties();
             var serInteract = new SerializedObject(playerInteract);
             serInteract.FindProperty("cameraTransform").objectReferenceValue = camObj.transform;
             serInteract.FindProperty("interactableLayer").intValue = 1 << LayerMask.NameToLayer("Interactable");
@@ -1364,8 +1365,9 @@ namespace RungTramTraSu
             cameraHandModel.transform.localScale = new Vector3(0.12f, 0.08f, 0.1f);
             DestroyImmediate(cameraHandModel.GetComponent<BoxCollider>());
 
-            new SerializedObject(playerCtrl) { }.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
-            new SerializedObject(playerCtrl).ApplyModifiedProperties();
+            SerializedObject serPlayer = new SerializedObject(playerCtrl);
+            serPlayer.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
+            serPlayer.ApplyModifiedProperties();
             var serInteract = new SerializedObject(playerInteract);
             serInteract.FindProperty("cameraTransform").objectReferenceValue = camObj.transform;
             serInteract.FindProperty("interactableLayer").intValue = 1 << LayerMask.NameToLayer("Interactable");
@@ -1525,8 +1527,9 @@ namespace RungTramTraSu
             cameraHandModel.transform.localScale = new Vector3(0.12f, 0.08f, 0.1f);
             DestroyImmediate(cameraHandModel.GetComponent<BoxCollider>());
 
-            new SerializedObject(playerCtrl) { }.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
-            new SerializedObject(playerCtrl).ApplyModifiedProperties();
+            SerializedObject serPlayer = new SerializedObject(playerCtrl);
+            serPlayer.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
+            serPlayer.ApplyModifiedProperties();
             var serInteract = new SerializedObject(playerInteract);
             serInteract.FindProperty("cameraTransform").objectReferenceValue = camObj.transform;
             serInteract.FindProperty("interactableLayer").intValue = 1 << LayerMask.NameToLayer("Interactable");
@@ -1785,8 +1788,9 @@ namespace RungTramTraSu
             cameraHandModel.transform.localScale = new Vector3(0.12f, 0.08f, 0.1f);
             DestroyImmediate(cameraHandModel.GetComponent<BoxCollider>());
 
-            new SerializedObject(playerCtrl) { }.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
-            new SerializedObject(playerCtrl).ApplyModifiedProperties();
+            SerializedObject serPlayer = new SerializedObject(playerCtrl);
+            serPlayer.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
+            serPlayer.ApplyModifiedProperties();
             var serInteract = new SerializedObject(playerInteract);
             serInteract.FindProperty("cameraTransform").objectReferenceValue = camObj.transform;
             serInteract.FindProperty("interactableLayer").intValue = 1 << LayerMask.NameToLayer("Interactable");
