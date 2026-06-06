@@ -107,7 +107,8 @@ namespace RungTramTraSu
             if (cameraPopupPanel != null && cameraPopupPanel.activeSelf)
             {
                 // Nhấn Space, Enter hoặc Click chuột để đóng pop-up máy ảnh
-                if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return) || Mouse.current.leftButton.wasPressedThisFrame)
+                if ((Keyboard.current != null && (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame)) || 
+                    (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame))
                 {
                     OnCloseCameraPopup();
                 }

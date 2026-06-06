@@ -81,37 +81,73 @@ namespace RungTramTraSu
         }
 
         private bool isWalkingToBoat = false;
-        private Vector3 targetBoatPos = new Vector3(15.5f, -0.4f, 8.0f); // Sát bến xuồng
         private float walkSpeed = 1.8f;
+        private int currentWaypointIndex = 0;
+        private Vector3[] walkWaypoints = new Vector3[0];
 
         public void WalkToBoat()
         {
             isWalkingToBoat = true;
+            currentWaypointIndex = 0;
+
+            // Build waypoints dynamically from the generated stepping stones
+            GameObject stonesContainer = GameObject.Find("SteppingStonesPath");
+            System.Collections.Generic.List<Vector3> pointsList = new System.Collections.Generic.List<Vector3>();
+
+            if (stonesContainer != null)
+            {
+                foreach (Transform child in stonesContainer.transform)
+                {
+                    pointsList.Add(child.position);
+                }
+                // Sort stones by X coordinate so Grandpa walks from house to pier
+                pointsList.Sort((a, b) => a.x.CompareTo(b.x));
+            }
+
+            // Add intermediate deck entrance waypoint to snap Grandpa up to deck level
+            pointsList.Add(new Vector3(13.0f, 1.03f, 8.0f));
+
+            // Add the pier target waypoint at the end
+            pointsList.Add(new Vector3(17.5f, 1.03f, 8.0f));
+
+            walkWaypoints = pointsList.ToArray();
         }
 
         private void Update()
         {
-            if (isWalkingToBoat)
+            if (isWalkingToBoat && walkWaypoints.Length > 0)
             {
+                Vector3 targetPos = walkWaypoints[currentWaypointIndex];
                 float step = walkSpeed * Time.deltaTime;
-                Vector3 targetDir = targetBoatPos - transform.position;
-                targetDir.y = 0; // Giữ thăng bằng trục xoay ngang
+                Vector3 targetDir = targetPos - transform.position;
+                targetDir.y = 0; // Rotate horizontal only
 
-                if (targetDir.magnitude > 0.15f)
+                if (Vector3.Distance(new Vector3(transform.position.x, 0f, transform.position.z), new Vector3(targetPos.x, 0f, targetPos.z)) > 0.2f)
                 {
-                    transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(targetDir), 8.0f * Time.deltaTime);
-                    transform.position = Vector3.MoveTowards(transform.position, targetBoatPos, step);
+                    if (targetDir.magnitude > 0.05f)
+                    {
+                        transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(targetDir), 8.0f * Time.deltaTime);
+                    }
+                    transform.position = Vector3.MoveTowards(transform.position, targetPos, step);
                 }
                 else
                 {
-                    isWalkingToBoat = false;
-                    // Lên xuồng ngồi chờ sẵn
-                    GameObject boatObj = GameObject.Find("Sampan Boat");
-                    if (boatObj != null)
+                    // Move to next waypoint or finish
+                    if (currentWaypointIndex < walkWaypoints.Length - 1)
                     {
-                        transform.SetParent(boatObj.transform, true);
-                        transform.localPosition = new Vector3(0f, 0.3f / 5f, 1.5f / 5f);
-                        transform.localRotation = Quaternion.identity;
+                        currentWaypointIndex++;
+                    }
+                    else
+                    {
+                        isWalkingToBoat = false;
+                        // Parent to boat and sit down
+                        GameObject boatObj = GameObject.Find("Sampan Boat");
+                        if (boatObj != null)
+                        {
+                            transform.SetParent(boatObj.transform, true);
+                            transform.localPosition = new Vector3(0f, 0.06f, 0.3f); // puts him at world (21.0, -0.7, 8.0)
+                            transform.localRotation = Quaternion.identity;
+                        }
                     }
                 }
             }

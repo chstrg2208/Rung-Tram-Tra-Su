@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.InputSystem;
 
 namespace RungTramTraSu
 {
@@ -51,7 +52,7 @@ namespace RungTramTraSu
         private void Update()
         {
             // Allow opening Diary starting from Phase 1/Phase 2
-            if (Input.GetKeyDown(KeyCode.Tab) || Input.GetKeyDown(KeyCode.I))
+            if (Keyboard.current != null && (Keyboard.current.tabKey.wasPressedThisFrame || Keyboard.current.iKey.wasPressedThisFrame))
             {
                 ToggleDiary();
             }

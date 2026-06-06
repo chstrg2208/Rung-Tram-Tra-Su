@@ -7,9 +7,18 @@
 /[Bb]uild/
 /[Bb]uilds/
 /[Cc]oBuild/
-/[Logs]/
-/[MemoryCaptures]/
-/[UserSettings]/
+/[Ll]ogs/
+/[Mm]emory[Cc]aptures/
+/[Uu]ser[Ss]ettings/
+
+# Large assets exceeding GitHub limits
+/Assets/Proxy Games/Stylized Nature Kit Lite/Misc/HDRI.hdr
+
+# Agent and IDE local files
+/docs/
+/Assets/Screenshots/
+*.slnx
+
 
 # Asset-specific ignore patterns
 /[Aa]ssets/AssetStoreTools*
