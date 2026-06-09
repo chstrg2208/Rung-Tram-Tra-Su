@@ -11,6 +11,7 @@ namespace RungTramTraSu
         [SerializeField] private float walkSpeed = 3.0f;
         [SerializeField] private float crouchSpeed = 1.5f;
         [SerializeField] private float gravity = -9.81f;
+        [SerializeField] private float jumpForce = 5.0f;
 
         [Header("Camera Settings")]
         [SerializeField] private Transform playerCamera;
@@ -40,10 +41,20 @@ namespace RungTramTraSu
         private bool isFrozen = false;
         private bool isMovementLocked = false;
 
+        private InputAction jumpAction;
+        private bool isSwimming = false;
+        private float waterSurfaceY = -1.0f;
+        private float swimLevelOffset = 1.3f; // Submerges player to shoulders
+        private float swimVerticalVelocity = 0f;
+
         public bool IsCrouching => isCrouching;
 
         private void Awake()
         {
+            // Tối ưu hóa FPS và bật VSync để tránh quá tải CPU/GPU gây lag Editor
+            QualitySettings.vSyncCount = 1;
+            Application.targetFrameRate = 60;
+
             characterController = GetComponent<CharacterController>();
             playerInput = GetComponent<PlayerInput>();
 
@@ -51,6 +62,7 @@ namespace RungTramTraSu
             moveAction = playerInput.actions["Move"];
             lookAction = playerInput.actions["Look"];
             crouchAction = playerInput.actions["Crouch"];
+            jumpAction = playerInput.actions["Jump"];
             
             targetCameraY = cameraStandingY;
 
@@ -86,6 +98,56 @@ namespace RungTramTraSu
 
         private void Update()
         {
+            // Update water level from deformer if present
+            if (WaterWaveDeformer.Instance != null)
+            {
+                waterSurfaceY = WaterWaveDeformer.Instance.GetWaveHeight(transform.position.x, transform.position.z);
+            }
+            else
+            {
+                waterSurfaceY = -1.0f;
+            }
+
+            // Handle entering/exiting swimming states
+            bool wasSwimming = isSwimming;
+            if (isSwimming)
+            {
+                // Exit conditions: jumped/climbed high out of water, or walking onto shallow bank
+                if (transform.position.y > waterSurfaceY + 0.25f || (characterController.isGrounded && transform.position.y > waterSurfaceY - 0.4f))
+                {
+                    isSwimming = false;
+                }
+            }
+            else
+            {
+                // Enter conditions: must be deep enough in water (chest Y level)
+                if (transform.position.y < waterSurfaceY - 0.5f)
+                {
+                    isSwimming = true;
+                }
+            }
+
+            // Handle splash triggers and crouch resets on entry
+            if (isSwimming && !wasSwimming)
+            {
+                TriggerWaterSplash(transform.position);
+
+                // Reset crouch state immediately when entering water
+                if (isCrouching)
+                {
+                    isCrouching = false;
+                    characterController.height = standingHeight;
+                    characterController.center = new Vector3(0f, standingHeight / 2f, 0f); // Reset center offset
+                    targetCameraY = cameraStandingY;
+                    if (playerCamera != null)
+                    {
+                        Vector3 camPos = playerCamera.localPosition;
+                        camPos.y = cameraStandingY;
+                        playerCamera.localPosition = camPos;
+                    }
+                }
+            }
+
             if (isFrozen)
             {
                 // Áp dụng trọng lực ngay cả khi đứng im
@@ -121,29 +183,121 @@ namespace RungTramTraSu
             Vector2 rawInput = moveAction != null ? moveAction.ReadValue<Vector2>() : Vector2.zero;
             currentInput = rawInput;
 
-            float speed = isCrouching ? crouchSpeed : walkSpeed;
-            float movementDirectionY = moveDirection.y;
-
-            // Tính toán hướng di chuyển dựa trên góc nhìn của người chơi
-            Vector3 forward = transform.TransformDirection(Vector3.forward);
-            Vector3 right = transform.TransformDirection(Vector3.right);
-
-            moveDirection = (forward * currentInput.y) + (right * currentInput.x);
-            moveDirection.Normalize();
-            moveDirection *= speed;
-
-            // Áp dụng trọng lực
-            if (characterController.isGrounded)
+            if (isSwimming)
             {
-                moveDirection.y = -0.5f; // Giữ nhân vật bám đất
+                float swimSpeed = crouchSpeed; // Use crouch speed as swim speed
+
+                // Calculate 3D movement direction based on camera angle
+                Vector3 right = transform.TransformDirection(Vector3.right);
+                Vector3 forward = transform.TransformDirection(Vector3.forward);
+                if (playerCamera != null)
+                {
+                    // Allow vertical swimming directed by looking up/down
+                    forward = playerCamera.forward;
+                }
+
+                moveDirection = (forward * currentInput.y) + (right * currentInput.x);
+                if (moveDirection.sqrMagnitude > 0.0001f)
+                {
+                    moveDirection.Normalize();
+                }
+                moveDirection *= swimSpeed;
+                float cameraY = moveDirection.y;
+
+                // Vertical controls (Ascend/Descend): Use input system Jump action
+                bool ascendPressed = jumpAction != null && jumpAction.IsPressed();
+                bool descendPressed = crouchAction != null && crouchAction.IsPressed();
+
+                if (ascendPressed)
+                {
+                    swimVerticalVelocity = 2.5f;
+                }
+                else if (descendPressed)
+                {
+                    swimVerticalVelocity = -2.5f;
+                }
+                else
+                {
+                    // Buoyancy spring force pulling towards shoulder level Y
+                    float targetSwimY = waterSurfaceY - swimLevelOffset;
+                    float yDiff = targetSwimY - transform.position.y;
+                    float buoyancyForce = yDiff * 5.0f;
+
+                    // Accumulate damped gravity and buoyancy spring
+                    swimVerticalVelocity += (gravity * 0.1f + buoyancyForce) * Time.deltaTime;
+
+                    // Damp vertical velocity towards rest
+                    swimVerticalVelocity = Mathf.MoveTowards(swimVerticalVelocity, 0f, 2.0f * Time.deltaTime);
+                }
+
+                // Combine camera-directed vertical swimming with vertical controls/buoyancy
+                if (currentInput.y != 0f && !ascendPressed && !descendPressed)
+                {
+                    // Blend camera Y with soft buoyancy
+                    moveDirection.y = cameraY + swimVerticalVelocity * 0.2f;
+                }
+                else
+                {
+                    moveDirection.y = swimVerticalVelocity;
+                }
+
+                // Move the CharacterController
+                characterController.Move(moveDirection * Time.deltaTime);
+
+                // Spawn water ripples while moving
+                if (currentInput.magnitude > 0.1f && Time.frameCount % 15 == 0)
+                {
+                    TriggerWaterRipple(transform.position);
+                }
             }
             else
             {
-                moveDirection.y = movementDirectionY + (gravity * Time.deltaTime);
-            }
+                float speed = isCrouching ? crouchSpeed : walkSpeed;
+                float movementDirectionY = moveDirection.y;
 
-            // Di chuyển CharacterController
-            characterController.Move(moveDirection * Time.deltaTime);
+                // Tính toán hướng di chuyển dựa trên góc nhìn của người chơi
+                Vector3 forward = transform.TransformDirection(Vector3.forward);
+                Vector3 right = transform.TransformDirection(Vector3.right);
+
+                moveDirection = (forward * currentInput.y) + (right * currentInput.x);
+                if (moveDirection.sqrMagnitude > 0.0001f)
+                {
+                    moveDirection.Normalize();
+                }
+                moveDirection *= speed;
+
+                // Đọc nút nhảy
+                bool jumpPressed = jumpAction != null && jumpAction.triggered;
+
+                // Áp dụng trọng lực và nhảy
+                if (characterController.isGrounded)
+                {
+                    if (jumpPressed)
+                    {
+                        moveDirection.y = jumpForce;
+
+                        // Hủy trạng thái cúi nếu đang cúi khi nhảy
+                        if (isCrouching)
+                        {
+                            isCrouching = false;
+                            characterController.height = standingHeight;
+                            characterController.center = new Vector3(0, standingHeight / 2f, 0);
+                            targetCameraY = cameraStandingY;
+                        }
+                    }
+                    else
+                    {
+                        moveDirection.y = -0.5f; // Giữ nhân vật bám đất
+                    }
+                }
+                else
+                {
+                    moveDirection.y = movementDirectionY + (gravity * Time.deltaTime);
+                }
+
+                // Di chuyển CharacterController
+                characterController.Move(moveDirection * Time.deltaTime);
+            }
         }
 
         private void HandleMouseLook()
@@ -167,6 +321,7 @@ namespace RungTramTraSu
         private void OnCrouchStarted(InputAction.CallbackContext context)
         {
             if (isFrozen) return;
+            if (isSwimming) return; // Ignore crouch toggle while swimming
 
             // Đảo trạng thái Crouch khi nhấn phím C
             isCrouching = !isCrouching;
@@ -218,6 +373,137 @@ namespace RungTramTraSu
             if (locked)
             {
                 moveDirection = Vector3.zero;
+            }
+        }
+
+        private void TriggerWaterSplash(Vector3 position)
+        {
+            GameObject splashObj = new GameObject("PlayerSplashParticles");
+            splashObj.transform.position = new Vector3(position.x, waterSurfaceY, position.z);
+
+            ParticleSystem ps = splashObj.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.duration = 1.0f;
+            main.loop = false;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(0.4f, 0.8f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(1.5f, 3.5f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.1f, 0.25f);
+            main.gravityModifier = 0.8f;
+
+            var emission = ps.emission;
+            emission.rateOverTime = 0;
+            emission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0.0f, 25) });
+
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Cone;
+            shape.angle = 20f;
+            shape.radius = 0.3f;
+
+            var colorOver = ps.colorOverLifetime;
+            colorOver.enabled = true;
+            Gradient grad = new Gradient();
+            grad.SetKeys(
+                new GradientColorKey[] { new GradientColorKey(Color.white, 0.0f), new GradientColorKey(new Color(0.7f, 0.85f, 0.95f), 1.0f) },
+                new GradientAlphaKey[] { new GradientAlphaKey(0.8f, 0.0f), new GradientAlphaKey(0.0f, 1.0f) }
+            );
+            colorOver.color = grad;
+
+            var renderer = splashObj.GetComponent<ParticleSystemRenderer>();
+            if (renderer != null)
+            {
+                Texture defaultTex = renderer.sharedMaterial != null ? renderer.sharedMaterial.mainTexture : null;
+
+                Material splashMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                splashMat.SetColor("_BaseColor", new Color(1.0f, 1.0f, 1.0f, 0.6f));
+                if (defaultTex != null)
+                {
+                    splashMat.SetTexture("_BaseMap", defaultTex);
+                }
+                splashMat.SetFloat("_Surface", 1.0f); // Transparent
+                splashMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                splashMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                splashMat.SetInt("_ZWrite", 0);
+                splashMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                splashMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                renderer.material = splashMat;
+
+                splashObj.AddComponent<MaterialCleanupHelper>().material = splashMat;
+            }
+
+            ps.Play();
+            Destroy(splashObj, 1.2f);
+        }
+
+        private void TriggerWaterRipple(Vector3 position)
+        {
+            GameObject rippleObj = new GameObject("PlayerSwimRipple");
+            rippleObj.transform.position = new Vector3(position.x, waterSurfaceY + 0.01f, position.z);
+
+            ParticleSystem ps = rippleObj.AddComponent<ParticleSystem>();
+            var main = ps.main;
+            main.duration = 0.5f;
+            main.loop = false;
+            main.startLifetime = 0.5f;
+            main.startSpeed = 0f;
+            main.startSize = 0.2f;
+
+            var emission = ps.emission;
+            emission.rateOverTime = 0;
+            emission.SetBursts(new ParticleSystem.Burst[] { new ParticleSystem.Burst(0.0f, 3) });
+
+            var shape = ps.shape;
+            shape.shapeType = ParticleSystemShapeType.Circle;
+            shape.radius = 0.1f;
+
+            var sizeOver = ps.sizeOverLifetime;
+            sizeOver.enabled = true;
+            sizeOver.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.Linear(0f, 1.0f, 1f, 4.0f));
+
+            var colorOver = ps.colorOverLifetime;
+            colorOver.enabled = true;
+            Gradient grad = new Gradient();
+            grad.SetKeys(
+                new GradientColorKey[] { new GradientColorKey(Color.white, 0.0f), new GradientColorKey(Color.white, 1.0f) },
+                new GradientAlphaKey[] { new GradientAlphaKey(0.4f, 0.0f), new GradientAlphaKey(0.0f, 1.0f) }
+            );
+            colorOver.color = grad;
+
+            var renderer = rippleObj.GetComponent<ParticleSystemRenderer>();
+            if (renderer != null)
+            {
+                Texture defaultTex = renderer.sharedMaterial != null ? renderer.sharedMaterial.mainTexture : null;
+
+                Material rippleMat = new Material(Shader.Find("Universal Render Pipeline/Particles/Unlit"));
+                rippleMat.SetColor("_BaseColor", new Color(1.0f, 1.0f, 1.0f, 0.3f));
+                if (defaultTex != null)
+                {
+                    rippleMat.SetTexture("_BaseMap", defaultTex);
+                }
+                rippleMat.SetFloat("_Surface", 1.0f); // Transparent
+                rippleMat.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+                rippleMat.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                rippleMat.SetInt("_ZWrite", 0);
+                rippleMat.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+                rippleMat.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                renderer.material = rippleMat;
+
+                rippleObj.AddComponent<MaterialCleanupHelper>().material = rippleMat;
+            }
+
+            ps.Play();
+            Destroy(rippleObj, 0.8f);
+        }
+    }
+
+    // Helper class to release runtime material memory leaks
+    public class MaterialCleanupHelper : MonoBehaviour
+    {
+        public Material material;
+        private void OnDestroy()
+        {
+            if (material != null)
+            {
+                Destroy(material);
             }
         }
     }
