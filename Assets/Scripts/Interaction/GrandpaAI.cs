@@ -17,8 +17,16 @@ namespace RungTramTraSu
         private float voiceTimer = 0f;
         private float voiceCooldown = 8.0f;
 
+        // Animation
+        private Animator animator;
+        private static readonly int IsWalkingHash = Animator.StringToHash("IsWalking");
+        private static readonly int IsRunningHash = Animator.StringToHash("IsRunning");
+        private static readonly int SpeedHash = Animator.StringToHash("Speed");
+
         private void Start()
         {
+            animator = GetComponent<Animator>();
+
             GameObject playerObj = GameObject.FindWithTag("Player");
             if (playerObj != null) player = playerObj.transform;
 
@@ -51,6 +59,9 @@ namespace RungTramTraSu
                     transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(lookDirection), 5.0f * Time.deltaTime);
                 }
 
+                // While waiting, play idle animation
+                SetAnimation(false, false);
+
                 // Check if player has caught up
                 if (distToPlayer < resumeDistance)
                 {
@@ -74,6 +85,7 @@ namespace RungTramTraSu
                 if (distToPlayer > waitDistance)
                 {
                     isWaiting = true;
+                    SetAnimation(false, false);
                     voiceTimer = voiceCooldown - 1f; // Call out almost immediately
                     return;
                 }
@@ -87,8 +99,12 @@ namespace RungTramTraSu
             if (waypoints.Count == 0 || currentWaypointIndex >= waypoints.Count)
             {
                 // Reached the end of the bridge!
+                SetAnimation(false, false);
                 return;
             }
+
+            // Play walking animation while moving
+            SetAnimation(true, false);
 
             Vector3 targetPos = waypoints[currentWaypointIndex];
             transform.position = Vector3.MoveTowards(transform.position, targetPos, walkSpeed * Time.deltaTime);
@@ -132,6 +148,18 @@ namespace RungTramTraSu
         {
             if (waypoints.Count == 0 || currentWaypointIndex >= waypoints.Count) return transform.position;
             return waypoints[currentWaypointIndex];
+        }
+
+        /// <summary>
+        /// Updates the Animator parameters to play the correct animation state.
+        /// </summary>
+        private void SetAnimation(bool walking, bool running)
+        {
+            if (animator == null) return;
+            animator.SetBool(IsWalkingHash, walking);
+            animator.SetBool(IsRunningHash, running);
+            float speed = running ? 1.0f : (walking ? 0.5f : 0.0f);
+            animator.SetFloat(SpeedHash, speed);
         }
     }
 }

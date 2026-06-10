@@ -45,6 +45,9 @@ namespace RungTramTraSu
             width = transform.localScale.x * 10f;
             length = transform.localScale.z * 10f;
 
+            // Reset local scale to prevent double scaling in the renderer
+            transform.localScale = Vector3.one;
+
             // Generate a custom subdivided grid mesh
             deformingMesh = new Mesh();
             deformingMesh.name = "SubdividedWaterMesh";

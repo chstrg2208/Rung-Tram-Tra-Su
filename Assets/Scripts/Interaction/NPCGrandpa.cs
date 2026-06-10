@@ -4,6 +4,12 @@ namespace RungTramTraSu
 {
     public class NPCGrandpa : MonoBehaviour, IInteractable
     {
+        // Animation
+        private Animator animator;
+        private static readonly int IsWalkingHash = Animator.StringToHash("IsWalking");
+        private static readonly int IsRunningHash = Animator.StringToHash("IsRunning");
+        private static readonly int SpeedHash = Animator.StringToHash("Speed");
+
         [Header("Dialogue Sets")]
         [SerializeField]
         private string[] introDialogue = new string[]
@@ -85,29 +91,66 @@ namespace RungTramTraSu
         private int currentWaypointIndex = 0;
         private Vector3[] walkWaypoints = new Vector3[0];
 
+        private void Start()
+        {
+            animator = GetComponent<Animator>();
+            // Start in idle state
+            SetAnimation(false, false);
+        }
+
         public void WalkToBoat()
         {
             isWalkingToBoat = true;
             currentWaypointIndex = 0;
 
-            // Build waypoints dynamically from the generated stepping stones
-            GameObject stonesContainer = GameObject.Find("SteppingStonesPath");
-            System.Collections.Generic.List<Vector3> pointsList = new System.Collections.Generic.List<Vector3>();
+            // Hand-crafted waypoints that follow the actual ground surface:
+            // House floor (Y≈1.84) → Door (Y≈1.84, Z=1.62) → Porch (Y≈1.62) → Stepping stones (from Stone 4) → Pier (Y≈1.03)
+            var pointsList = new System.Collections.Generic.List<Vector3>();
 
+            // Phase 1: Walk across the house floor towards the door opening
+            pointsList.Add(new Vector3(-5.5f, 1.84f, 3.12f));   // Inside house, start walking forward
+            pointsList.Add(new Vector3(-3.5f, 1.84f, 1.62f));   // Turn towards the door opening (Z=1.62 is the door center)
+            pointsList.Add(new Vector3(-1.15f, 1.84f, 1.62f));  // Directly in the middle of the door opening
+
+            // Phase 2: Step down onto the porch
+            pointsList.Add(new Vector3(-0.5f, 1.62f, 1.62f));   // Porch just outside the door
+            pointsList.Add(new Vector3(0.0f,  1.58f, 2.08f));   // Align with the first stepping stone
+
+            // Phase 3: Down to terrain level, following the stepping stones path
+            GameObject stonesContainer = GameObject.Find("SteppingStonesPath");
             if (stonesContainer != null)
             {
+                var stonePoints = new System.Collections.Generic.List<Vector3>();
                 foreach (Transform child in stonesContainer.transform)
                 {
-                    pointsList.Add(child.position);
+                    stonePoints.Add(child.position);
                 }
-                // Sort stones by X coordinate so Grandpa walks from house to pier
-                pointsList.Sort((a, b) => a.x.CompareTo(b.x));
+                // Sort by X so we walk in order from house toward pier
+                stonePoints.Sort((a, b) => a.x.CompareTo(b.x));
+
+                // We start from index 4 (Stone 4, X ≈ 0.5) to avoid backtracking to Stones 0-3 which are behind/under the house
+                for (int i = 4; i < stonePoints.Count; i += 2)
+                {
+                    var p = stonePoints[i];
+                    pointsList.Add(new Vector3(p.x, p.y + 0.05f, p.z));
+                }
+
+                // Always include the last stone
+                if (stonePoints.Count > 0)
+                {
+                    var last = stonePoints[stonePoints.Count - 1];
+                    var lastAdded = pointsList[pointsList.Count - 1];
+                    if (Vector3.Distance(last, lastAdded) > 0.5f)
+                    {
+                        pointsList.Add(new Vector3(last.x, last.y + 0.05f, last.z));
+                    }
+                }
             }
 
-            // Add intermediate deck entrance waypoint to snap Grandpa up to deck level
+            // Phase 4: Step onto the wooden pier/deck (Y = 1.03)
             pointsList.Add(new Vector3(13.0f, 1.03f, 8.0f));
 
-            // Add the pier target waypoint at the end
+            // Phase 5: Walk along the pier to near the boat
             pointsList.Add(new Vector3(17.5f, 1.03f, 8.0f));
 
             walkWaypoints = pointsList.ToArray();
@@ -124,6 +167,9 @@ namespace RungTramTraSu
 
                 if (Vector3.Distance(new Vector3(transform.position.x, 0f, transform.position.z), new Vector3(targetPos.x, 0f, targetPos.z)) > 0.2f)
                 {
+                    // Play walking animation while moving
+                    SetAnimation(true, false);
+
                     if (targetDir.magnitude > 0.05f)
                     {
                         transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(targetDir), 8.0f * Time.deltaTime);
@@ -140,6 +186,8 @@ namespace RungTramTraSu
                     else
                     {
                         isWalkingToBoat = false;
+                        // Stop walking animation
+                        SetAnimation(false, false);
                         // Parent to boat and sit down
                         GameObject boatObj = GameObject.Find("Sampan Boat");
                         if (boatObj != null)
@@ -151,6 +199,18 @@ namespace RungTramTraSu
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Updates the Animator parameters to play the correct animation state.
+        /// </summary>
+        private void SetAnimation(bool walking, bool running)
+        {
+            if (animator == null) return;
+            animator.SetBool(IsWalkingHash, walking);
+            animator.SetBool(IsRunningHash, running);
+            float speed = running ? 1.0f : (walking ? 0.5f : 0.0f);
+            animator.SetFloat(SpeedHash, speed);
         }
     }
 }

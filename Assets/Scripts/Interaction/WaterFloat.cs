@@ -6,6 +6,8 @@ namespace RungTramTraSu
     {
         [Header("Floating Offset")]
         [SerializeField] private float initialYOffset = 0.16f; // Adjustment for boat hull depth
+        [SerializeField] private float pitchOffset = 0f;       // Custom pitch offset (negative tilts front down, rear up)
+        [SerializeField] private float rollOffset = 0f;        // Custom roll offset
 
         [Header("Rocking Parameters")]
         [SerializeField] private float rockXAmplitude = 1.5f; 
@@ -15,12 +17,16 @@ namespace RungTramTraSu
         private float initialY;
         private float initialYaw;
         private float randomOffset;
+        private Transform playerTransform;
 
         private void Start()
         {
             initialY = transform.position.y;
             initialYaw = transform.rotation.eulerAngles.y; // Cache initial yaw
             randomOffset = Random.Range(0f, 100f);
+
+            var player = GameObject.Find("Player");
+            if (player != null) playerTransform = player.transform;
         }
 
         private void Update()
@@ -62,8 +68,39 @@ namespace RungTramTraSu
                 waveHeight = initialY + Mathf.Sin(timeVal * 1.2f) * 0.04f;
             }
 
+            float playerDipY = 0f;
+            float playerPitch = 0f;
+            float playerRoll = 0f;
+
+            if (playerTransform == null)
+            {
+                var pGo = GameObject.Find("Player");
+                if (pGo != null) playerTransform = pGo.transform;
+            }
+
+            if (playerTransform != null)
+            {
+                float dist = Vector3.Distance(transform.position, playerTransform.position);
+                if (dist < 4.0f)
+                {
+                    Vector3 dir = playerTransform.position - transform.position;
+                    Vector3 localForward = transform.right.normalized;  // Boat length is along local X
+                    Vector3 localRight = transform.forward.normalized;  // Boat width is along local Z
+
+                    float forwardDot = Vector3.Dot(dir, localForward);
+                    float rightDot = Vector3.Dot(dir, localRight);
+
+                    float factor = Mathf.Clamp01((4.0f - dist) / 4.0f); // 0 to 1
+                    playerDipY = -0.06f * factor; // Dip up to 6cm
+
+                    // Tilt towards the player
+                    playerPitch = forwardDot * 4.0f * factor;
+                    playerRoll = -rightDot * 4.0f * factor;
+                }
+            }
+
             // Set Y position
-            float targetY = waveHeight + initialYOffset;
+            float targetY = waveHeight + initialYOffset + playerDipY;
             transform.position = new Vector3(pos.x, targetY, pos.z);
 
             // Calculate local pitch and roll angles
@@ -75,8 +112,8 @@ namespace RungTramTraSu
             roll = Mathf.Clamp(roll, -25f, 25f);
 
             // Add a gentle wind/water wobble
-            pitch += Mathf.Sin(timeVal * rockFrequency) * rockXAmplitude;
-            roll += Mathf.Cos(timeVal * rockFrequency * 1.3f) * rockZAmplitude;
+            pitch += Mathf.Sin(timeVal * rockFrequency) * rockXAmplitude + pitchOffset + playerPitch;
+            roll += Mathf.Cos(timeVal * rockFrequency * 1.3f) * rockZAmplitude + rollOffset + playerRoll;
 
             // Apply rotation relative to cached yaw:
             // - X-axis rotation is roll (tilts side-to-side)

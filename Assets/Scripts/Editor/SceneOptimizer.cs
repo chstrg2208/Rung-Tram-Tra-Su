@@ -189,5 +189,137 @@ namespace RungTramTraSu
             EditorUtility.DisplayDialog("Optimization Complete", report, "OK");
             Debug.Log(report);
         }
+
+        [MenuItem("Tools/Setup Nature Sounds")]
+        public static void SetupNatureSounds()
+        {
+            var activeScene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+            
+            // 1. Setup Player Footsteps
+            GameObject player = GameObject.Find("Player");
+            if (player == null)
+            {
+                EditorUtility.DisplayDialog("Error", "Player GameObject not found in the scene!", "OK");
+                return;
+            }
+
+            Undo.RegisterCompleteObjectUndo(player, "Setup Player Footsteps");
+            PlayerFootsteps footsteps = player.GetComponent<PlayerFootsteps>();
+            if (footsteps == null)
+            {
+                footsteps = player.AddComponent<PlayerFootsteps>();
+            }
+
+            // Find all grass footstep clips
+            List<AudioClip> footstepClips = new List<AudioClip>();
+            for (int i = 1; i <= 9; i++)
+            {
+                string path = $"Assets/Nature Sounds Pack/Footstep/FootstepGrass0{i}.wav";
+                AudioClip clip = AssetDatabase.LoadAssetAtPath<AudioClip>(path);
+                if (clip != null)
+                {
+                    footstepClips.Add(clip);
+                }
+                else
+                {
+                    Debug.LogWarning($"Could not find footstep clip at: {path}");
+                }
+            }
+            footsteps.grassFootsteps = footstepClips.ToArray();
+            EditorUtility.SetDirty(footsteps);
+
+            // 2. Setup Ambient Audio Root
+            GameObject ambientRoot = GameObject.Find("AmbientAudio");
+            if (ambientRoot == null)
+            {
+                ambientRoot = new GameObject("AmbientAudio");
+                Undo.RegisterCreatedObjectUndo(ambientRoot, "Create Ambient Audio Root");
+            }
+
+            // A. Setup Ambient Wind (2D Loop - playing Nature Birds + Water)
+            Transform windTransform = ambientRoot.transform.Find("Ambient_Wind");
+            GameObject windObj = windTransform != null ? windTransform.gameObject : null;
+            if (windObj == null)
+            {
+                windObj = new GameObject("Ambient_Wind");
+                windObj.transform.SetParent(ambientRoot.transform);
+                Undo.RegisterCreatedObjectUndo(windObj, "Create Ambient Wind");
+            }
+            AudioSource windSource = windObj.GetComponent<AudioSource>();
+            if (windSource == null)
+            {
+                windSource = windObj.AddComponent<AudioSource>();
+            }
+            AudioClip windClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Nature Sounds Pack/Ambient/AmbientNatureBirdsWater01.wav");
+            windSource.clip = windClip;
+            windSource.loop = true;
+            windSource.playOnAwake = true;
+            windSource.spatialBlend = 0.0f; // 2D
+            windSource.volume = 0.45f; // Increased volume for prominent bird sounds
+            EditorUtility.SetDirty(windSource);
+
+            // B. Remove Ambient Foliage if it exists
+            Transform foliageTransform = ambientRoot.transform.Find("Ambient_Foliage");
+            if (foliageTransform != null)
+            {
+                Undo.DestroyObjectImmediate(foliageTransform.gameObject);
+            }
+
+            // C. Setup Ambient River (3D Loop)
+            Transform riverTransform = ambientRoot.transform.Find("Ambient_River");
+            GameObject riverObj = riverTransform != null ? riverTransform.gameObject : null;
+            if (riverObj == null)
+            {
+                riverObj = new GameObject("Ambient_River");
+                riverObj.transform.SetParent(ambientRoot.transform);
+                Undo.RegisterCreatedObjectUndo(riverObj, "Create Ambient River");
+            }
+            // Position near the RiverWater_Canal center
+            riverObj.transform.position = new Vector3(25.0f, -1.0f, 0.0f);
+            
+            AudioSource riverSource = riverObj.GetComponent<AudioSource>();
+            if (riverSource == null)
+            {
+                riverSource = riverObj.AddComponent<AudioSource>();
+            }
+            AudioClip riverClip = AssetDatabase.LoadAssetAtPath<AudioClip>("Assets/Nature Sounds Pack/Stream/StreamAndBirds02.wav");
+            riverSource.clip = riverClip;
+            riverSource.loop = true;
+            riverSource.playOnAwake = true;
+            riverSource.spatialBlend = 0.85f; // 3D
+            riverSource.minDistance = 5.0f;
+            riverSource.maxDistance = 45.0f;
+            riverSource.volume = 0.12f; // Reduced volume to prevent drowning out bird sounds
+            EditorUtility.SetDirty(riverSource);
+
+            // 3. Setup Ambient Controller (Muffle wind when indoors)
+            AmbientController ambientCtrl = ambientRoot.GetComponent<AmbientController>();
+            if (ambientCtrl == null)
+            {
+                ambientCtrl = ambientRoot.AddComponent<AmbientController>();
+            }
+            ambientCtrl.windSource = windSource;
+            ambientCtrl.foliageSource = null;
+            ambientCtrl.normalWindVolume = 0.45f;
+            ambientCtrl.normalFoliageVolume = 0.0f;
+            EditorUtility.SetDirty(ambientCtrl);
+
+            // Mark active scene dirty and save it
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(activeScene);
+            UnityEditor.SceneManagement.EditorSceneManager.SaveScene(activeScene);
+
+            AssetDatabase.SaveAssets();
+
+            string report = "Nature Sounds Setup Completed Successfully!\n" +
+                            $"- Attached PlayerFootsteps component and assigned {footsteps.grassFootsteps.Length} grass footstep clips.\n" +
+                            $"- Configured Ambient_Wind (2D loop, Nature Birds + Water ambient).\n" +
+                            $"- Removed Ambient_Foliage (Fake tree blowing wind sound).\n" +
+                            $"- Configured Ambient_River (3D loop, River + birds at x=25, y=-1, z=0).\n" +
+                            $"- Setup AmbientController on AmbientAudio to muffle outdoor sounds inside the house.\n" +
+                            "Scene has been saved.";
+            
+            EditorUtility.DisplayDialog("Audio Setup Complete", report, "OK");
+            Debug.Log(report);
+        }
     }
 }
