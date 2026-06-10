@@ -23073,7 +23073,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -24824,7 +24824,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4278512639
   m_fontColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -24837,7 +24837,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -27423,7 +27423,7 @@ Canvas:
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
   m_UseReflectionProbes: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -27676,6 +27676,7 @@ MonoBehaviour:
   walkSpeed: 3
   crouchSpeed: 1.5
   gravity: -9.81
+  jumpForce: 5
   playerCamera: {fileID: 1261604914}
   mouseSensitivity: 0.1
   upperLookLimit: 80
@@ -28630,7 +28631,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4278512639
   m_fontColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -28643,7 +28644,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -42622,7 +42623,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4278190335
   m_fontColor: {r: 1, g: 0, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -42635,7 +42636,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -45344,7 +45345,7 @@ Canvas:
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
   m_UseReflectionProbes: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -50984,7 +50985,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1186931063}
   - component: {fileID: 1186931062}
-  - component: {fileID: 1186931061}
+  - component: {fileID: 1186931064}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -50992,37 +50993,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1186931061
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1186931060}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: db0ed98d57511dc4ab8a55989fefac7b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.Phase5Manager
-  player: {fileID: 656704869}
-  grandpa: {fileID: 1979538278}
-  dirLight: {fileID: 1919409255}
-  objectiveText: {fileID: 1649212124}
-  photoCamera: {fileID: 1261604910}
-  sunsetTarget: {fileID: 833429958}
-  diaryCanvas: {fileID: 1052940345}
-  polaroidImages:
-  - {fileID: 722906385}
-  - {fileID: 740159145}
-  - {fileID: 180568296}
-  - {fileID: 901589966}
-  - {fileID: 554991303}
-  diaryText: {fileID: 2075706231}
-  replayButton: {fileID: 160254856}
-  dayFogColor: {r: 0.6, g: 0.73, b: 0.65, a: 1}
-  sunsetFogColor: {r: 0.78, g: 0.38, b: 0.35, a: 1}
-  dayLightColor: {r: 1, g: 0.95, b: 0.82, a: 1}
-  sunsetLightColor: {r: 0.98, g: 0.45, b: 0.22, a: 1}
 --- !u!114 &1186931062
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -51055,6 +51025,37 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1186931064
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186931060}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 63884cc81d9106047860ec9ea7e66da7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.Phase5Manager
+  player: {fileID: 656704869}
+  grandpa: {fileID: 1979538278}
+  dirLight: {fileID: 1919409255}
+  objectiveText: {fileID: 1649212124}
+  photoCamera: {fileID: 1261604910}
+  sunsetTarget: {fileID: 833429958}
+  diaryCanvas: {fileID: 1052940345}
+  polaroidImages:
+  - {fileID: 722906385}
+  - {fileID: 740159145}
+  - {fileID: 180568296}
+  - {fileID: 901589966}
+  - {fileID: 554991303}
+  diaryText: {fileID: 2075706231}
+  replayButton: {fileID: 160254856}
+  dayFogColor: {r: 0.6, g: 0.73, b: 0.65, a: 1}
+  sunsetFogColor: {r: 0.78, g: 0.38, b: 0.35, a: 1}
+  dayLightColor: {r: 1, g: 0.95, b: 0.82, a: 1}
+  sunsetLightColor: {r: 0.98, g: 0.45, b: 0.22, a: 1}
 --- !u!1 &1187452602
 GameObject:
   m_ObjectHideFlags: 0
@@ -52514,7 +52515,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4286611584
   m_fontColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -52527,7 +52528,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -61722,7 +61723,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4278255360
   m_fontColor: {r: 0, g: 1, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -61735,7 +61736,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -69230,7 +69231,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -71350,7 +71351,7 @@ Canvas:
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
   m_UseReflectionProbes: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -82423,7 +82424,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -88629,7 +88630,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4291946226
   m_fontColor: {r: 0.95, g: 0.9, b: 0.82, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -88642,7 +88643,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2

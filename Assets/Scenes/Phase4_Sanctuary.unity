@@ -11076,7 +11076,7 @@ GameObject:
   m_Component:
   - component: {fileID: 166706394}
   - component: {fileID: 166706393}
-  - component: {fileID: 166706392}
+  - component: {fileID: 166706395}
   m_Layer: 0
   m_Name: Managers
   m_TagString: Untagged
@@ -11084,27 +11084,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &166706392
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 166706391}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 72abf1ca3b102974390a58c92f3b1cad, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.Phase4Manager
-  player: {fileID: 853792781}
-  objectiveText: {fileID: 1908703546}
-  animals:
-  - {fileID: 1100575887}
-  - {fileID: 460809793}
-  - {fileID: 1755760827}
-  - {fileID: 2102031575}
-  - {fileID: 287236050}
-  - {fileID: 1778103016}
 --- !u!114 &166706393
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -11137,6 +11116,27 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &166706395
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 166706391}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dd8763d9ffd1e6a48b6a066934cf014f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.Phase4Manager
+  player: {fileID: 853792781}
+  objectiveText: {fileID: 1908703546}
+  animals:
+  - {fileID: 287236056}
+  - {fileID: 460809799}
+  - {fileID: 1100575893}
+  - {fileID: 1755760833}
+  - {fileID: 1778103022}
+  - {fileID: 2102031581}
 --- !u!1 &167086564
 GameObject:
   m_ObjectHideFlags: 0
@@ -13967,7 +13967,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4278255360
   m_fontColor: {r: 0, g: 1, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -13980,7 +13980,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -18572,7 +18572,7 @@ GameObject:
   - component: {fileID: 287236053}
   - component: {fileID: 287236052}
   - component: {fileID: 287236051}
-  - component: {fileID: 287236050}
+  - component: {fileID: 287236056}
   m_Layer: 8
   m_Name: FlyingButterfly_1
   m_TagString: Untagged
@@ -18580,21 +18580,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &287236050
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 287236049}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 153c076b180b1614e9066dfa717d81a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
-  animalType: 3
-  speed: 2.5
-  range: 2.2
 --- !u!135 &287236051
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -18709,6 +18694,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &287236056
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 287236049}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 058a197af0ea31e4c89e7e2ffde0b1d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
+  animalType: 3
+  speed: 2.5
+  range: 2.2
 --- !u!1 &289070721
 GameObject:
   m_ObjectHideFlags: 0
@@ -28398,7 +28398,7 @@ GameObject:
   - component: {fileID: 460809796}
   - component: {fileID: 460809795}
   - component: {fileID: 460809794}
-  - component: {fileID: 460809793}
+  - component: {fileID: 460809799}
   m_Layer: 8
   m_Name: PerchedStork_2
   m_TagString: Untagged
@@ -28406,21 +28406,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &460809793
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 460809792}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 153c076b180b1614e9066dfa717d81a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
-  animalType: 0
-  speed: 7
-  range: 0
 --- !u!135 &460809794
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -28535,6 +28520,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &460809799
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 460809792}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 058a197af0ea31e4c89e7e2ffde0b1d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
+  animalType: 0
+  speed: 7
+  range: 0
 --- !u!1 &463399615
 GameObject:
   m_ObjectHideFlags: 0
@@ -44490,7 +44490,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4278190335
   m_fontColor: {r: 1, g: 0, b: 0, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -44503,7 +44503,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -52401,7 +52401,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4286611584
   m_fontColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -52414,7 +52414,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -53819,6 +53819,7 @@ MonoBehaviour:
   walkSpeed: 3
   crouchSpeed: 1.5
   gravity: -9.81
+  jumpForce: 5
   playerCamera: {fileID: 1174657770}
   mouseSensitivity: 0.1
   upperLookLimit: 80
@@ -72758,7 +72759,7 @@ GameObject:
   - component: {fileID: 1100575890}
   - component: {fileID: 1100575889}
   - component: {fileID: 1100575888}
-  - component: {fileID: 1100575887}
+  - component: {fileID: 1100575893}
   m_Layer: 8
   m_Name: PerchedStork_1
   m_TagString: Untagged
@@ -72766,21 +72767,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1100575887
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1100575886}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 153c076b180b1614e9066dfa717d81a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
-  animalType: 0
-  speed: 7
-  range: 0
 --- !u!135 &1100575888
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -72895,6 +72881,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1100575893
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1100575886}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 058a197af0ea31e4c89e7e2ffde0b1d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
+  animalType: 0
+  speed: 7
+  range: 0
 --- !u!1 &1101062413
 GameObject:
   m_ObjectHideFlags: 0
@@ -78680,7 +78681,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -87994,7 +87995,7 @@ Canvas:
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
   m_UseReflectionProbes: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -88166,7 +88167,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4278512639
   m_fontColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -88179,7 +88180,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -114240,7 +114241,7 @@ GameObject:
   - component: {fileID: 1755760830}
   - component: {fileID: 1755760829}
   - component: {fileID: 1755760828}
-  - component: {fileID: 1755760827}
+  - component: {fileID: 1755760833}
   m_Layer: 8
   m_Name: SwimmingSnake_1
   m_TagString: Untagged
@@ -114248,21 +114249,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1755760827
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1755760826}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 153c076b180b1614e9066dfa717d81a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
-  animalType: 1
-  speed: 2
-  range: 5
 --- !u!135 &1755760828
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -114379,6 +114365,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1755760833
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1755760826}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 058a197af0ea31e4c89e7e2ffde0b1d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
+  animalType: 1
+  speed: 2
+  range: 5
 --- !u!21 &1756772917
 Material:
   serializedVersion: 8
@@ -115951,7 +115952,7 @@ GameObject:
   - component: {fileID: 1778103019}
   - component: {fileID: 1778103018}
   - component: {fileID: 1778103017}
-  - component: {fileID: 1778103016}
+  - component: {fileID: 1778103022}
   m_Layer: 8
   m_Name: FloatingDuck_1
   m_TagString: Untagged
@@ -115959,21 +115960,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1778103016
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1778103015}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 153c076b180b1614e9066dfa717d81a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
-  animalType: 4
-  speed: 1.5
-  range: 4
 --- !u!135 &1778103017
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -116090,6 +116076,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1778103022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1778103015}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 058a197af0ea31e4c89e7e2ffde0b1d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
+  animalType: 4
+  speed: 1.5
+  range: 4
 --- !u!21 &1778691595
 Material:
   serializedVersion: 8
@@ -120243,7 +120244,7 @@ Canvas:
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
   m_UseReflectionProbes: 0
-  m_AdditionalShaderChannelsFlag: 0
+  m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
   m_SortingOrder: 0
@@ -121962,7 +121963,7 @@ MonoBehaviour:
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4294967295
+    rgba: 4278512639
   m_fontColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
@@ -121975,7 +121976,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -124790,7 +124791,7 @@ MonoBehaviour:
   m_spriteAsset: {fileID: 0}
   m_tintAllSprites: 0
   m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: 0
+  m_TextStyleHashCode: -1183493901
   m_overrideHtmlColors: 0
   m_faceColor:
     serializedVersion: 2
@@ -136837,7 +136838,7 @@ GameObject:
   - component: {fileID: 2102031578}
   - component: {fileID: 2102031577}
   - component: {fileID: 2102031576}
-  - component: {fileID: 2102031575}
+  - component: {fileID: 2102031581}
   m_Layer: 8
   m_Name: JumpingFish_1
   m_TagString: Untagged
@@ -136845,21 +136846,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &2102031575
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2102031574}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 153c076b180b1614e9066dfa717d81a8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
-  animalType: 2
-  speed: 0
-  range: 0
 --- !u!135 &2102031576
 SphereCollider:
   m_ObjectHideFlags: 0
@@ -136976,6 +136962,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2102031581
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2102031574}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 058a197af0ea31e4c89e7e2ffde0b1d1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::RungTramTraSu.AnimalAI
+  animalType: 2
+  speed: 0
+  range: 0
 --- !u!1 &2102718108
 GameObject:
   m_ObjectHideFlags: 0

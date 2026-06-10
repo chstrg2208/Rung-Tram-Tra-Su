@@ -169,12 +169,58 @@ namespace RungTramTraSu
             }
         }
 
+        private bool sarusCraneCapturedAtCurrentCheckpoint = false;
+
+        private struct BirdInfo
+        {
+            public string vietnameseName;
+            public Color bodyColor;
+            public Color headColor;
+            public Vector3 scale;
+            public string description;
+        }
+
+        private static readonly BirdInfo[] Level1Species = new BirdInfo[]
+        {
+            new BirdInfo { vietnameseName = "Cò trắng", bodyColor = Color.white, headColor = Color.white, scale = new Vector3(0.7f, 0.15f, 0.5f), description = "Cò trắng bay lững lờ trên ngọn tràm." },
+            new BirdInfo { vietnameseName = "Diệc xám", bodyColor = new Color(0.5f, 0.55f, 0.6f), headColor = new Color(0.5f, 0.55f, 0.6f), scale = new Vector3(0.9f, 0.2f, 0.6f), description = "Diệc xám bay điềm tĩnh." },
+            new BirdInfo { vietnameseName = "Cò ốc", bodyColor = new Color(0.85f, 0.85f, 0.85f), headColor = new Color(0.2f, 0.2f, 0.2f), scale = new Vector3(0.8f, 0.2f, 0.5f), description = "Cò ốc bay hơi nặng nề." },
+            new BirdInfo { vietnameseName = "Già đẫy", bodyColor = new Color(0.3f, 0.3f, 0.3f), headColor = new Color(0.9f, 0.6f, 0.6f), scale = new Vector3(1.0f, 0.25f, 0.7f), description = "Già đẫy to lớn bay lờ đờ." }
+        };
+
+        private static readonly BirdInfo[] Level2Species = new BirdInfo[]
+        {
+            new BirdInfo { vietnameseName = "Vạc", bodyColor = new Color(0.2f, 0.3f, 0.4f), headColor = new Color(0.2f, 0.3f, 0.4f), scale = new Vector3(0.6f, 0.2f, 0.45f), description = "Vạc bay tầm thấp đều nhịp." },
+            new BirdInfo { vietnameseName = "Cồng cộc", bodyColor = new Color(0.05f, 0.05f, 0.05f), headColor = new Color(0.05f, 0.05f, 0.05f), scale = new Vector3(0.5f, 0.12f, 0.4f), description = "Cồng cộc bay thẳng đường vỗ cánh liên tục." },
+            new BirdInfo { vietnameseName = "Cò bợ", bodyColor = new Color(0.55f, 0.45f, 0.35f), headColor = Color.white, scale = new Vector3(0.6f, 0.15f, 0.45f), description = "Cò bợ bay khoe đôi cánh trắng." },
+            new BirdInfo { vietnameseName = "Trích cùi", bodyColor = new Color(0.3f, 0.2f, 0.6f), headColor = Color.red, scale = new Vector3(0.55f, 0.18f, 0.45f), description = "Trích cùi mỏ đỏ rực sặc sỡ." },
+            new BirdInfo { vietnameseName = "Điêng điểng", bodyColor = new Color(0.15f, 0.15f, 0.15f), headColor = new Color(0.15f, 0.15f, 0.15f), scale = new Vector3(0.7f, 0.12f, 0.5f), description = "Điêng điểng cổ rắn dài ngoằn ngoèo." }
+        };
+
+        private static readonly BirdInfo[] Level3Species = new BirdInfo[]
+        {
+            new BirdInfo { vietnameseName = "Bói cá", bodyColor = new Color(0f, 0.7f, 0.9f), headColor = new Color(0.9f, 0.4f, 0.1f), scale = new Vector3(0.3f, 0.08f, 0.25f), description = "Bói cá nhỏ xíu xẹt ngang như mũi tên." },
+            new BirdInfo { vietnameseName = "Le le", bodyColor = new Color(0.65f, 0.5f, 0.35f), headColor = new Color(0.65f, 0.5f, 0.35f), scale = new Vector3(0.4f, 0.12f, 0.35f), description = "Le le vỗ cánh cực nhanh sát mặt nước." },
+            new BirdInfo { vietnameseName = "Bìm bịp", bodyColor = new Color(0.1f, 0.1f, 0.1f), headColor = new Color(0.6f, 0.3f, 0.1f), scale = new Vector3(0.6f, 0.15f, 0.45f), description = "Bìm bịp cánh nâu đỏ bay chuyền bụi rậm." },
+            new BirdInfo { vietnameseName = "Én", bodyColor = new Color(0.1f, 0.12f, 0.2f), headColor = new Color(0.1f, 0.12f, 0.2f), scale = new Vector3(0.25f, 0.06f, 0.2f), description = "Chim én lượn nhanh đổi hướng liên tục." }
+        };
+
+        private static readonly BirdInfo SarusCraneSpecies = new BirdInfo
+        {
+            vietnameseName = "Sếu đầu đỏ",
+            bodyColor = new Color(0.7f, 0.7f, 0.7f),
+            headColor = new Color(0.9f, 0.1f, 0.1f),
+            scale = new Vector3(1.1f, 0.22f, 0.8f),
+            description = "Cực phẩm Sếu đầu đỏ quý hiếm xuất hiện!"
+        };
+
         private void TriggerCheckpoint(int number, float birdSpeed, string category, string instructionText)
         {
             isTravelling = false;
             isAtCheckpoint = true;
             currentCheckpoint = number;
             birdsCapturedAtCurrentCheckpoint = 0;
+            sarusCraneCapturedAtCurrentCheckpoint = false;
 
             if (photoCamera != null)
             {
@@ -185,9 +231,12 @@ namespace RungTramTraSu
             UpdateObjectiveText($"Checkpoint {number}: {instructionText} (0/3)");
 
             string speedText = number == 1 ? "từ từ thong thả" : (number == 2 ? "bay hơi nhanh hơn chút" : "bay rất nhanh lướt qua");
+            string speciesNames = number == 1 ? "Cò trắng, Diệc xám, Cò ốc, Già đẫy" : (number == 2 ? "Vạc, Cồng cộc, Cò bợ, Trích cùi, Điêng điểng" : "Bói cá, Le le, Bìm bịp, Én");
+            
             DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
-                $"Tới Checkpoint {number} rồi nè con. Chim sáp sửa bay ngang qua đó con.",
-                $"Đợt này chim sẽ bay {speedText}. Con lấy máy ảnh ra sẵn đi, ngắm sẵn rồi chụp nghe!"
+                $"Tới Checkpoint {number} rồi nè con. Chim sắp sửa bay ngang qua đó con.",
+                $"Đợt này chim sẽ bay {speedText}. Có các loài: {speciesNames}.",
+                "Con lấy máy ảnh ra sẵn đi, ngắm sẵn rồi chụp nghe!"
             });
 
             // Sinh đàn chim và bắt đầu bay
@@ -200,23 +249,69 @@ namespace RungTramTraSu
         {
             ClearActiveBirds();
 
+            BirdInfo[] pool = Level1Species;
+            if (currentCheckpoint == 2) pool = Level2Species;
+            else if (currentCheckpoint == 3) pool = Level3Species;
+
+            // 15% chance to spawn a Sarus Crane as the first bird in the flock
+            bool spawnSarus = (Random.value < 0.15f);
+
             for (int i = 0; i < 6; i++)
             {
-                GameObject bird = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                bird.name = "Stork_Bird_" + i;
-                bird.transform.position = new Vector3(8f + Random.Range(-2f, 2f), 8f + Random.Range(-1.5f, 1.5f), zCenter + 15f + Random.Range(-2f, 2f));
-                bird.transform.localScale = new Vector3(0.7f, 0.15f, 0.5f);
+                BirdInfo info;
+                bool isSarusThisBird = false;
+                if (spawnSarus && i == 0)
+                {
+                    info = SarusCraneSpecies;
+                    isSarusThisBird = true;
+                }
+                else
+                {
+                    info = pool[Random.Range(0, pool.Length)];
+                }
+
+                // Create main container
+                GameObject birdContainer = new GameObject(isSarusThisBird ? "Sarus_Crane" : $"Bird_{info.vietnameseName}");
+                birdContainer.transform.position = new Vector3(8f + Random.Range(-2f, 2f), 8f + Random.Range(-1.5f, 1.5f), zCenter + 15f + Random.Range(-2f, 2f));
                 
-                Material birdMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                birdMat.color = Color.white;
-                bird.GetComponent<Renderer>().sharedMaterial = birdMat;
+                // Create body
+                GameObject body = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                body.name = "Body";
+                body.transform.SetParent(birdContainer.transform, false);
+                body.transform.localScale = info.scale;
+
+                // Create head/beak
+                GameObject head = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                head.name = "Head";
+                head.transform.SetParent(birdContainer.transform, false);
+                head.transform.localPosition = new Vector3(0f, info.scale.y * 0.7f, info.scale.z * 0.45f);
+                head.transform.localScale = new Vector3(info.scale.x * 0.5f, info.scale.y * 1.5f, info.scale.z * 0.3f);
+
+                // Set materials
+                Material bodyMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                bodyMat.color = info.bodyColor;
+                body.GetComponent<Renderer>().sharedMaterial = bodyMat;
+
+                Material headMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                headMat.color = info.headColor;
+                head.GetComponent<Renderer>().sharedMaterial = headMat;
+
+                // Remove colliders from child parts
+                DestroyImmediate(body.GetComponent<Collider>());
+                DestroyImmediate(head.GetComponent<Collider>());
+
+                // Add root trigger collider
+                var sphereCol = birdContainer.AddComponent<SphereCollider>();
+                sphereCol.isTrigger = true;
+                sphereCol.radius = Mathf.Max(info.scale.x, info.scale.z) * 1.2f;
+
+                birdContainer.tag = "Interactable";
                 
-                // Set tag and remove collider to avoid collision but keep detectable
-                bird.tag = "Interactable";
-                DestroyImmediate(bird.GetComponent<Collider>());
-                
-                // Add simple sphere collider for viewport checks if needed, but not required
-                activeBirds.Add(bird);
+                var birdInfoHolder = birdContainer.AddComponent<BirdDataHolder>();
+                birdInfoHolder.vietnameseName = info.vietnameseName;
+                birdInfoHolder.isSarus = isSarusThisBird;
+
+                activeBirds.Add(birdContainer);
             }
         }
 
@@ -237,7 +332,7 @@ namespace RungTramTraSu
                 float duration = 28f / speed;
 
                 // Reset positions to start (left side of canal)
-                for (int i = 0; i < activeBirds.Count; i++)
+                for (int i = activeBirds.Count - 1; i >= 0; i--)
                 {
                     if (activeBirds[i] != null)
                     {
@@ -252,7 +347,7 @@ namespace RungTramTraSu
                     t += Time.deltaTime;
                     float progress = t / duration;
 
-                    for (int i = 0; i < activeBirds.Count; i++)
+                    for (int i = activeBirds.Count - 1; i >= 0; i--)
                     {
                         if (activeBirds[i] != null)
                         {
@@ -265,7 +360,7 @@ namespace RungTramTraSu
                     yield return null;
                 }
 
-                yield return new WaitForSeconds(0.8f); // Dừng ngắn trước khi lặp lại bay tiếp
+                yield return new WaitForSeconds(0.8f);
             }
         }
 
@@ -283,11 +378,27 @@ namespace RungTramTraSu
                 if (bird == null) continue;
                 Vector3 vp = cam.WorldToViewportPoint(bird.transform.position);
                 
-                // Hỗ trợ chụp ở khu vực trung tâm ống ngắm (Viewport [0.3, 0.7])
-                if (vp.z > 0 && vp.x >= 0.28f && vp.x <= 0.72f && vp.y >= 0.28f && vp.y <= 0.72f)
+                // Viewport check (around center of screen)
+                if (vp.z > 0 && vp.x >= 0.25f && vp.x <= 0.75f && vp.y >= 0.25f && vp.y <= 0.75f)
                 {
+                    // Occlusion check
+                    RaycastHit hit;
+                    Vector3 dir = bird.transform.position - cam.transform.position;
+                    if (Physics.Raycast(cam.transform.position, dir, out hit, dir.magnitude + 0.5f))
+                    {
+                        if (hit.transform != bird.transform && !hit.transform.IsChildOf(bird.transform))
+                        {
+                            continue;
+                        }
+                    }
+
                     hits++;
                     capturedThisFrame.Add(bird);
+                    var data = bird.GetComponent<BirdDataHolder>();
+                    if (data != null && data.isSarus)
+                    {
+                        sarusCraneCapturedAtCurrentCheckpoint = true;
+                    }
                 }
             }
 
@@ -316,10 +427,24 @@ namespace RungTramTraSu
 
             if (flightCoroutine != null) StopCoroutine(flightCoroutine);
 
-            DialogueManager.Instance.ShowDialogue("Ông Ngoại", new string[] {
-                "Ừa giỏi quá con ơi! Chụp dính rồi kìa.",
-                "Được 3 tấm hình đẹp rồi đó. Ông cháu mình nổ máy đi tiếp nghen."
-            }, () => {
+            string[] dialogueLines;
+            if (sarusCraneCapturedAtCurrentCheckpoint)
+            {
+                dialogueLines = new string[] {
+                    "Trời đất ơi con ơi! Con chụp dính con Sếu đầu đỏ kìa!",
+                    "Loài này cực kỳ quý hiếm luôn đó con, lâu lắm rồi ông mới thấy lại tụi nó bay về đây.",
+                    "Tấm hình này thực sự là vô giá đó con. Thôi, ông cháu mình nổ máy đi tiếp nghen!"
+                };
+            }
+            else
+            {
+                dialogueLines = new string[] {
+                    "Ừa giỏi quá con ơi! Chụp dính rồi kìa.",
+                    "Được 3 tấm hình đẹp rồi đó. Ông cháu mình nổ máy đi tiếp nghen."
+                };
+            }
+
+            DialogueManager.Instance.ShowDialogue("Ông Ngoại", dialogueLines, () => {
                 isTravelling = true;
                 UpdateObjectiveText("Nhìn ngắm phong cảnh. Ông Ngoại đang chèo xuồng đưa bạn đi...");
             });
@@ -338,7 +463,7 @@ namespace RungTramTraSu
             if (player != null)
             {
                 player.SetParent(null);
-                player.localScale = Vector3.one; // Khôi phục lại tỷ lệ kích thước chuẩn 1x1x1 cho người chơi
+                player.localScale = Vector3.one;
                 
                 var controller = player.GetComponent<PlayerController>();
                 if (controller != null)
@@ -367,4 +492,12 @@ namespace RungTramTraSu
             if (objectiveText != null) objectiveText.text = text;
         }
     }
+
+    public class BirdDataHolder : MonoBehaviour
+    {
+        public string vietnameseName;
+        public bool isSarus;
+    }
 }
+
+

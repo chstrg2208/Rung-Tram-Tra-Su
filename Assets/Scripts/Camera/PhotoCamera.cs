@@ -163,8 +163,20 @@ namespace RungTramTraSu
         {
             if (questTarget == null) return;
 
+            // Determine the actual visual center of the target (using its Collider bounds center if available)
+            Vector3 targetPosition = questTarget.position;
+            Collider targetCollider = questTarget.GetComponent<Collider>();
+            if (targetCollider == null)
+            {
+                targetCollider = questTarget.GetComponentInChildren<Collider>();
+            }
+            if (targetCollider != null)
+            {
+                targetPosition = targetCollider.bounds.center;
+            }
+
             // Chuyển vị trí mục tiêu từ tọa độ World sang Viewport của Camera
-            Vector3 viewportPoint = playerCamera.WorldToViewportPoint(questTarget.position);
+            Vector3 viewportPoint = playerCamera.WorldToViewportPoint(targetPosition);
 
             // Kiểm tra xem mục tiêu:
             // - Có nằm ở phía trước camera hay không (z > 0)
@@ -178,7 +190,7 @@ namespace RungTramTraSu
             {
                 // Kiểm tra xem mục tiêu có bị vật cản (như tường, nhà) che mất không
                 RaycastHit hit;
-                Vector3 directionToTarget = questTarget.position - playerCamera.transform.position;
+                Vector3 directionToTarget = targetPosition - playerCamera.transform.position;
                 if (Physics.Raycast(playerCamera.transform.position, directionToTarget, out hit, directionToTarget.magnitude + 1f, occlusionLayers))
                 {
                     // Nếu va chạm trúng vật khác trước mục tiêu
