@@ -49,12 +49,25 @@ namespace RungTramTraSu
         private void Start()
         {
             // Generate winding waypoints based on the canal curve formula
-            float zStart = -60f;
+            float zStart = -55f;
             float zEnd = 58f;
             float step = 2.0f;
             for (float z = zStart; z <= zEnd; z += step)
             {
-                float x = 25f + Mathf.Sin(z * 0.08f) * 5f;
+                float canalX = 25f + Mathf.Sin(z * 0.08f) * 5f;
+                float x = canalX;
+                if (z == -55f)
+                {
+                    x = 25f; // start at boat's initial position next to pier
+                }
+                else if (z == -53f)
+                {
+                    x = Mathf.Lerp(25f, canalX, 0.33f);
+                }
+                else if (z == -51f)
+                {
+                    x = Mathf.Lerp(25f, canalX, 0.66f);
+                }
                 // Height of boat sits on water (Y = -0.82f)
                 waypoints.Add(new Vector3(x, -0.82f, z));
             }
@@ -67,8 +80,8 @@ namespace RungTramTraSu
                 // Bù trừ tỷ lệ scale của thuyền để player không bị phóng to và bay lên trời
                 Vector3 boatScale = boat.localScale;
                 player.localScale = new Vector3(1f / boatScale.x, 1f / boatScale.y, 1f / boatScale.z);
-                player.localPosition = new Vector3(0f, 0.3f / boatScale.y, -1.0f / boatScale.z);
-                player.localRotation = Quaternion.identity;
+                player.localPosition = new Vector3(-1.0f / boatScale.x, 0.3f / boatScale.y, 0f);
+                player.localRotation = Quaternion.Euler(0f, 90f, 0f);
                 
                 var controller = player.GetComponent<PlayerController>();
                 if (controller != null)
@@ -133,7 +146,7 @@ namespace RungTramTraSu
             Vector3 direction = (targetPos - boat.position).normalized;
             if (direction != Vector3.zero)
             {
-                Quaternion targetRot = Quaternion.LookRotation(direction);
+                Quaternion targetRot = Quaternion.LookRotation(direction) * Quaternion.Euler(0f, -90f, 0f);
                 boat.rotation = Quaternion.Slerp(boat.rotation, targetRot, rotationSpeed * Time.deltaTime);
             }
 

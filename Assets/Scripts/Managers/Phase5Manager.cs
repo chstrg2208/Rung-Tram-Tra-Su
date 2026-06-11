@@ -25,9 +25,9 @@ namespace RungTramTraSu
         [SerializeField] private Button replayButton;
 
         [Header("Sunset Colors")]
-        [SerializeField] private Color dayFogColor = new Color(0.60f, 0.73f, 0.65f);
+        [SerializeField] private Color dayFogColor = new Color(0.6f, 0.78f, 0.72f);
         [SerializeField] private Color sunsetFogColor = new Color(0.78f, 0.38f, 0.35f);
-        [SerializeField] private Color dayLightColor = new Color(1.0f, 0.95f, 0.82f);
+        [SerializeField] private Color dayLightColor = new Color(1.0f, 0.96f, 0.86f);
         [SerializeField] private Color sunsetLightColor = new Color(0.98f, 0.45f, 0.22f);
 
         private bool dialogueTriggered = false;
@@ -76,12 +76,12 @@ namespace RungTramTraSu
         private void ApplySunsetLighting(float progress)
         {
             RenderSettings.fogColor = Color.Lerp(dayFogColor, sunsetFogColor, progress);
-            RenderSettings.fogDensity = Mathf.Lerp(0.022f, 0.026f, progress);
+            RenderSettings.fogDensity = Mathf.Lerp(0.015f, 0.026f, progress);
 
             if (dirLight != null)
             {
                 dirLight.color = Color.Lerp(dayLightColor, sunsetLightColor, progress);
-                dirLight.intensity = Mathf.Lerp(1.5f, 0.75f, progress);
+                dirLight.intensity = Mathf.Lerp(1.35f, 0.75f, progress);
                 // Slowly tilt sun down
                 dirLight.transform.rotation = Quaternion.Euler(Mathf.Lerp(20f, 6f, progress), -65f, 0f);
             }

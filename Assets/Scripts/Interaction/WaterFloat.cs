@@ -5,7 +5,7 @@ namespace RungTramTraSu
     public class WaterFloat : MonoBehaviour
     {
         [Header("Floating Offset")]
-        [SerializeField] private float initialYOffset = 0.16f; // Adjustment for boat hull depth
+        [SerializeField] public float initialYOffset = 0.32f; // Adjustment for boat hull depth
         [SerializeField] private float pitchOffset = 0f;       // Custom pitch offset (negative tilts front down, rear up)
         [SerializeField] private float rollOffset = 0f;        // Custom roll offset
 
@@ -115,10 +115,11 @@ namespace RungTramTraSu
             pitch += Mathf.Sin(timeVal * rockFrequency) * rockXAmplitude + pitchOffset + playerPitch;
             roll += Mathf.Cos(timeVal * rockFrequency * 1.3f) * rockZAmplitude + rollOffset + playerRoll;
 
-            // Apply rotation relative to cached yaw:
+            // Apply rotation relative to current yaw:
             // - X-axis rotation is roll (tilts side-to-side)
             // - Z-axis rotation is pitch (tilts front-to-back)
-            transform.rotation = Quaternion.Euler(0f, initialYaw, 0f) * Quaternion.Euler(roll, 0f, pitch);
+            float currentYaw = transform.rotation.eulerAngles.y;
+            transform.rotation = Quaternion.Euler(0f, currentYaw, 0f) * Quaternion.Euler(roll, 0f, pitch);
         }
     }
 }

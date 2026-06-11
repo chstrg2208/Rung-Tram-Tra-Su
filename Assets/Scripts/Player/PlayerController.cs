@@ -22,8 +22,8 @@ namespace RungTramTraSu
         [Header("Crouch Settings")]
         [SerializeField] private float standingHeight = 2.0f;
         [SerializeField] private float crouchHeight = 1.2f;
-        [SerializeField] private float cameraStandingY = 0.8f;
-        [SerializeField] private float cameraCrouchY = 0.2f;
+        private float cameraStandingY = 1.8f; // Mắt tầm cao đứng tự nhiên (không dùng SerializeField để tránh đè giá trị 0.8 sai từ Scene)
+        private float cameraCrouchY = 1.0f;    // Mắt tầm thấp cúi tự nhiên (không dùng SerializeField để tránh đè giá trị 0.2 sai từ Scene)
         [SerializeField] private float crouchTransitionSpeed = 8.0f;
 
         private CharacterController characterController;
@@ -112,16 +112,16 @@ namespace RungTramTraSu
             bool wasSwimming = isSwimming;
             if (isSwimming)
             {
-                // Exit conditions: jumped/climbed high out of water, or walking onto shallow bank
-                if (transform.position.y > waterSurfaceY + 0.25f || (characterController.isGrounded && transform.position.y > waterSurfaceY - 0.4f))
+                // Exit conditions: jumped/climbed high out of water, or walking onto shallow bank (wading in water depth < 1.0m)
+                if (transform.position.y > waterSurfaceY + 0.25f || (characterController.isGrounded && transform.position.y > waterSurfaceY - 1.0f))
                 {
                     isSwimming = false;
                 }
             }
             else
             {
-                // Enter conditions: must be deep enough in water (chest Y level)
-                if (transform.position.y < waterSurfaceY - 0.5f)
+                // Enter conditions: must be deep enough in water (depth > 1.2m)
+                if (transform.position.y < waterSurfaceY - 1.2f)
                 {
                     isSwimming = true;
                 }

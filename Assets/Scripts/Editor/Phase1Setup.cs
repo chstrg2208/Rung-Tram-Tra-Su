@@ -600,6 +600,42 @@ namespace RungTramTraSu
             return obj;
         }
 
+        private static void SetupGrandpaAnimator(GameObject grandpa)
+        {
+            if (grandpa == null) return;
+            
+            var controller = AssetDatabase.LoadAssetAtPath<RuntimeAnimatorController>("Assets/Animations/Grandpa/GrandpaAnimator.controller");
+            if (controller == null)
+            {
+                Debug.LogWarning("Không tìm thấy GrandpaAnimator.controller tại Assets/Animations/Grandpa/GrandpaAnimator.controller");
+                return;
+            }
+
+            var oldAnim = grandpa.GetComponent<Animation>();
+            if (oldAnim != null)
+            {
+                DestroyImmediate(oldAnim);
+            }
+
+            var animator = grandpa.GetComponent<Animator>();
+            if (animator == null)
+            {
+                animator = grandpa.AddComponent<Animator>();
+            }
+            animator.runtimeAnimatorController = controller;
+
+            if (grandpa.GetComponent<NPCGrandpa>() == null)
+            {
+                grandpa.AddComponent<NPCGrandpa>();
+            }
+
+            var col = grandpa.GetComponent<CapsuleCollider>();
+            if (col != null)
+            {
+                col.isTrigger = true;
+            }
+        }
+
         private static void AddMeshCollidersRecursively(GameObject obj)
         {
             MeshFilter[] meshFilters = obj.GetComponentsInChildren<MeshFilter>(true);
@@ -860,12 +896,13 @@ namespace RungTramTraSu
             river.GetComponent<Renderer>().sharedMaterial = waterMat;
 
             // Boat
-            GameObject boat = LoadAndInstantiate("Assets/Models/VietnameseBoat/mô+hình+thuyền+sampan+gỗ+3d.glb", "Sampan Boat", new Vector3(25f, -0.82f, -55f), Quaternion.identity);
+            GameObject boat = LoadAndInstantiate("Assets/Models/VietnameseBoat/mô+hình+thuyền+sampan+gỗ+3d.glb", "Sampan Boat", new Vector3(25f, -0.82f, -55f), Quaternion.Euler(0f, -90f, 0f));
             if (boat != null)
             {
                 boat.transform.localScale = new Vector3(5f, 5f, 5f);
                 SetupPerfectBoatCollider(boat);
-                boat.AddComponent<WaterFloat>();
+                var wf = boat.AddComponent<WaterFloat>();
+                wf.initialYOffset = 0.32f;
 
                 // Thêm Ông Ngoại ngồi ở mũi thuyền chèo xuồng
                 GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", Vector3.zero, Quaternion.identity);
@@ -875,8 +912,16 @@ namespace RungTramTraSu
                     // Bù trừ tỷ lệ scale 5x của thuyền (giữ kích thước của ông ngoại ở mức 0.85x chuẩn trong thế giới thực)
                     grandpa.transform.localScale = new Vector3(0.85f / 5f, 0.85f / 5f, 0.85f / 5f);
                     // Đặt ông ngoại ở đầu thuyền, quay mặt về phía trước cùng chiều di chuyển
-                    grandpa.transform.localPosition = new Vector3(0f, 0.3f / 5f, 1.5f / 5f);
-                    grandpa.transform.localRotation = Quaternion.identity;
+                    grandpa.transform.localPosition = new Vector3(1.5f / 5f, 0.3f / 5f, 0f);
+                    grandpa.transform.localRotation = Quaternion.Euler(0f, 90f, 0f);
+
+                    grandpa.layer = LayerMask.NameToLayer("Interactable");
+                    var col = grandpa.AddComponent<CapsuleCollider>();
+                    col.center = new Vector3(0, 0.9f, 0);
+                    col.radius = 0.35f;
+                    col.height = 1.8f;
+
+                    SetupGrandpaAnimator(grandpa);
                 }
             }
 
@@ -1317,29 +1362,31 @@ namespace RungTramTraSu
             GameObject gameUI = CreateBaseGameUI(photoCam, cameraHandModel, out TextMeshProUGUI objText);
 
             // Chiếc xuồng ba lá (Sampan Boat) neo sát bến để tự động trôi dọc kênh
-            GameObject boat = LoadAndInstantiate("Assets/Models/VietnameseBoat/mô+hình+thuyền+sampan+gỗ+3d.glb", "Sampan Boat", new Vector3(startX - 3.5f, -0.82f, -45f), Quaternion.identity);
+            GameObject boat = LoadAndInstantiate("Assets/Models/VietnameseBoat/mô+hình+thuyền+sampan+gỗ+3d.glb", "Sampan Boat", new Vector3(startX - 3.5f, -0.82f, -45f), Quaternion.Euler(0f, -90f, 0f));
             if (boat != null)
             {
                 boat.transform.localScale = new Vector3(5f, 5f, 5f);
                 SetupPerfectBoatCollider(boat);
-                boat.AddComponent<WaterFloat>();
+                var wf = boat.AddComponent<WaterFloat>();
+                wf.initialYOffset = 0.32f;
             }
 
             // Grandpa NPC đứng trên thuyền
-            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(startX - 3.5f, -0.42f, -43f), Quaternion.identity);
+            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", Vector3.zero, Quaternion.identity);
             if (grandpa != null)
             {
-                grandpa.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
+                grandpa.transform.SetParent(boat.transform, false);
+                grandpa.transform.localScale = new Vector3(0.85f / 5f, 0.85f / 5f, 0.85f / 5f);
+                grandpa.transform.localPosition = new Vector3(1.2f / 5f, 0.35f / 5f, 0f);
+                grandpa.transform.localRotation = Quaternion.Euler(0f, -90f, 0f); // facing player (who is at local -X)
+
+                grandpa.layer = LayerMask.NameToLayer("Interactable");
                 var col = grandpa.AddComponent<CapsuleCollider>();
                 col.center = new Vector3(0, 0.9f, 0);
                 col.radius = 0.35f;
                 col.height = 1.8f;
-                if (boat != null)
-                {
-                    grandpa.transform.SetParent(boat.transform, true);
-                    grandpa.transform.localPosition = new Vector3(0f, 0.35f / 5f, 1.2f / 5f);
-                    grandpa.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                }
+
+                SetupGrandpaAnimator(grandpa);
             }
 
             // Managers
@@ -1533,6 +1580,7 @@ namespace RungTramTraSu
                 col.center = new Vector3(0, 0.9f, 0);
                 col.radius = 0.35f;
                 col.height = 1.8f;
+                SetupGrandpaAnimator(grandpa);
             }
 
             // Spawn animals
@@ -1801,6 +1849,7 @@ namespace RungTramTraSu
                 col.center = new Vector3(0, 0.9f, 0);
                 col.radius = 0.35f;
                 col.height = 1.8f;
+                SetupGrandpaAnimator(grandpa);
             }
 
             // Build Ending Diary Canvas
@@ -2083,39 +2132,70 @@ namespace RungTramTraSu
 
         private static void SetupPostProcessingAndFog(GameObject camObj)
         {
+            // 1. Cấu hình Fog (Sương mù buổi sáng vùng sông nước miền Tây)
             RenderSettings.fog = true;
-            RenderSettings.fogColor = new Color(0.60f, 0.73f, 0.65f);
+            RenderSettings.fogColor = new Color(0.6f, 0.78f, 0.72f); // Sương mù trà xanh nhạt
             RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = 0.022f;
+            RenderSettings.fogDensity = 0.015f; // Độ đậm sương mù nhẹ nhàng thanh thoát
 
+            // 2. Áp dụng Skybox
+            Material skyboxMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Proxy Games/Stylized Nature Kit Lite/Materials/Skybox.mat");
+            if (skyboxMat != null)
+            {
+                RenderSettings.skybox = skyboxMat;
+            }
+            else
+            {
+                Debug.LogWarning("Không tìm thấy Skybox material tại Assets/Proxy Games/Stylized Nature Kit Lite/Materials/Skybox.mat");
+            }
+
+            // 3. Cấu hình Ambient fill light để tránh bóng đổ quá đen tối màu
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.28f, 0.34f, 0.38f); // Màu xanh bầu trời dịu mát
+            DynamicGI.UpdateEnvironment();
+
+            // 4. Tạo đối tượng Global Volume chứa hậu kỳ
             GameObject volumeObj = new GameObject("Global PostProcess Volume");
             var volume = volumeObj.AddComponent<Volume>();
             volume.isGlobal = true;
 
-            VolumeProfile profile = ScriptableObject.CreateInstance<VolumeProfile>();
+            // Tải Volume Profile từ disk hoặc tạo mới nếu chưa tồn tại
+            string profilePath = "Assets/Scenes/Phase1_VolumeProfile.asset";
+            VolumeProfile profile = AssetDatabase.LoadAssetAtPath<VolumeProfile>(profilePath);
+            if (profile == null)
+            {
+                profile = ScriptableObject.CreateInstance<VolumeProfile>();
 
-            var tonemapping = profile.Add<Tonemapping>();
-            tonemapping.active = true;
-            tonemapping.mode.Override(TonemappingMode.ACES);
+                // - ACES Tonemapping
+                var tonemapping = profile.Add<Tonemapping>();
+                tonemapping.active = true;
+                tonemapping.mode.Override(TonemappingMode.ACES);
 
-            var bloom = profile.Add<Bloom>();
-            bloom.active = true;
-            bloom.threshold.Override(0.78f);
-            bloom.intensity.Override(2.2f);
-            bloom.scatter.Override(0.72f);
-            bloom.tint.Override(new Color(1f, 0.94f, 0.80f));
+                // - Bloom (Nắng vàng tỏa rực rỡ qua sương sớm)
+                var bloom = profile.Add<Bloom>();
+                bloom.active = true;
+                bloom.threshold.Override(0.78f);
+                bloom.intensity.Override(2.2f);
+                bloom.scatter.Override(0.72f);
+                bloom.tint.Override(new Color(1f, 0.94f, 0.80f));
 
-            var colorAdjust = profile.Add<ColorAdjustments>();
-            colorAdjust.active = true;
-            colorAdjust.contrast.Override(25f);
-            colorAdjust.saturation.Override(32f);
-            colorAdjust.postExposure.Override(0.24f);
+                // - Color Adjustments (Nâng độ rực và tương phản của bèo xanh, cỏ cây)
+                var colorAdjust = profile.Add<ColorAdjustments>();
+                colorAdjust.active = true;
+                colorAdjust.contrast.Override(25f);
+                colorAdjust.saturation.Override(32f);
+                colorAdjust.postExposure.Override(0.24f);
 
-            var vignette = profile.Add<Vignette>();
-            vignette.active = true;
-            vignette.intensity.Override(0.28f);
-            vignette.smoothness.Override(0.4f);
-            vignette.rounded.Override(true);
+                // - Vignette (Cinematic border)
+                var vignette = profile.Add<Vignette>();
+                vignette.active = true;
+                vignette.intensity.Override(0.28f);
+                vignette.smoothness.Override(0.4f);
+                vignette.rounded.Override(true);
+
+                AssetDatabase.CreateAsset(profile, profilePath);
+                AssetDatabase.SaveAssets();
+            }
 
             volume.sharedProfile = profile;
         }

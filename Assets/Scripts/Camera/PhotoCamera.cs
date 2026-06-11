@@ -41,6 +41,17 @@ namespace RungTramTraSu
             if (playerCamera == null) playerCamera = Camera.main;
             targetFOV = normalFOV;
             
+            // Tự động mở khóa camera ở các Phase sau Phase 2 (Phase 3, 4, 5)
+            string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
+            if (sceneName.Contains("Phase3") || sceneName.Contains("Phase4") || sceneName.Contains("Phase5"))
+            {
+                hasCamera = true;
+            }
+            else
+            {
+                hasCamera = false;
+            }
+            
             if (viewfinderCanvas != null) viewfinderCanvas.SetActive(false);
             if (flashImage != null)
             {

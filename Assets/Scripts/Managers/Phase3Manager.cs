@@ -44,7 +44,7 @@ namespace RungTramTraSu
         private void Start()
         {
             // Generate waypoints along the bamboo bridge canal path
-            float bzStart = -48f;
+            float bzStart = -45f;
             float bzEnd = 48f;
             float bStep = 2.0f;
             for (float z = bzStart; z <= bzEnd; z += bStep)
@@ -60,8 +60,8 @@ namespace RungTramTraSu
                 player.SetParent(boat);
                 Vector3 boatScale = boat.localScale;
                 player.localScale = new Vector3(1f / boatScale.x, 1f / boatScale.y, 1f / boatScale.z);
-                player.localPosition = new Vector3(0f, 0.3f / boatScale.y, -1.0f / boatScale.z);
-                player.localRotation = Quaternion.identity;
+                player.localPosition = new Vector3(-1.0f / boatScale.x, 0.3f / boatScale.y, 0f);
+                player.localRotation = Quaternion.Euler(0f, 90f, 0f);
 
                 var controller = player.GetComponent<PlayerController>();
                 if (controller != null)
@@ -111,7 +111,7 @@ namespace RungTramTraSu
             Vector3 direction = (targetPos - boat.position).normalized;
             if (direction != Vector3.zero)
             {
-                Quaternion targetRot = Quaternion.LookRotation(direction);
+                Quaternion targetRot = Quaternion.LookRotation(direction) * Quaternion.Euler(0f, -90f, 0f);
                 boat.rotation = Quaternion.Slerp(boat.rotation, targetRot, rotationSpeed * Time.deltaTime);
             }
 
