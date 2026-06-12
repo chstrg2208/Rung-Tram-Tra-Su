@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
@@ -200,7 +200,7 @@ namespace RungTramTraSu.Editor
             return go;
         }
 
-        [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 1 - Upgrade Terrain")]
+//         [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 1 - Upgrade Terrain")]
         public static void UpgradeTerrain()
         {
             EnsureSceneLoaded();
@@ -252,7 +252,7 @@ namespace RungTramTraSu.Editor
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
-        [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 2 - Upgrade Water")]
+//         [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 2 - Upgrade Water")]
         public static void UpgradeWater()
         {
             EnsureSceneLoaded();
@@ -371,7 +371,7 @@ namespace RungTramTraSu.Editor
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
-        [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 3 - Populate Nature")]
+//         [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 3 - Populate Nature")]
         public static void PopulateNature()
         {
             EnsureSceneLoaded();
@@ -536,7 +536,7 @@ namespace RungTramTraSu.Editor
             }
         }
 
-        [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 4 - Add Rocks")]
+//         [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 4 - Add Rocks")]
         public static void AddRocks()
         {
             EnsureSceneLoaded();
@@ -650,7 +650,7 @@ namespace RungTramTraSu.Editor
             return list;
         }
 
-        [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 5 - Add Spruce Trees and Skybox")]
+//         [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 5 - Add Spruce Trees and Skybox")]
         public static void AddSpruceAndSkybox()
         {
             EnsureSceneLoaded();
@@ -752,7 +752,7 @@ namespace RungTramTraSu.Editor
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
-        [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Upgrade Kit Materials to URP")]
+//         [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Upgrade Kit Materials to URP")]
         public static void UpgradeKitMaterials()
         {
             Debug.Log("Upgrading Stylized Nature Kit Lite materials to URP...");
@@ -840,7 +840,7 @@ namespace RungTramTraSu.Editor
             Debug.Log("Material upgrade to URP completed!");
         }
 
-        [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 6 - Generate Boardwalk and Stepping Stones")]
+//         [MenuItem("Rung Tram Tra Su/Beautify Phase 1/Step 6 - Generate Boardwalk and Stepping Stones")]
         public static void GenerateWalkwayAndSteppingStones()
         {
             EnsureSceneLoaded();
@@ -1017,7 +1017,7 @@ namespace RungTramTraSu.Editor
             EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());
         }
 
-        [MenuItem("Rung Tram Tra Su/Beautify Phase 1/★ Run ALL Steps")]
+//         [MenuItem("Rung Tram Tra Su/Beautify Phase 1/★ Run ALL Steps")]
         public static void BeautifyAll()
         {
             EnsureSceneLoaded();

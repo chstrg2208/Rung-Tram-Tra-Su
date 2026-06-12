@@ -33,7 +33,8 @@ namespace RungTramTraSu
         private bool dialogueTriggered = false;
         private bool sunsetCaptured = false;
         private float startHeight = 1.0f;
-        private float topHeight = 11.5f;
+        private float topHeight = 10.75f;
+        private Material skyboxInstance;
 
         private void Awake()
         {
@@ -52,7 +53,25 @@ namespace RungTramTraSu
                 if (controller != null) controller.SetFrozen(false);
             }
 
+            // Set topHeight matching the new deck surface height
+            topHeight = 10.75f;
+
+            // Instantiate a copy of the skybox material so we don't modify the asset on disk
+            if (RenderSettings.skybox != null)
+            {
+                skyboxInstance = Instantiate(RenderSettings.skybox);
+                RenderSettings.skybox = skyboxInstance;
+            }
+
             UpdateObjectiveText("Mục tiêu: Leo lên đỉnh tháp quan sát để ngắm hoàng hôn cùng Ông Ngoại.");
+        }
+
+        private void OnDestroy()
+        {
+            if (skyboxInstance != null)
+            {
+                Destroy(skyboxInstance);
+            }
         }
 
         private void Update()
@@ -84,6 +103,15 @@ namespace RungTramTraSu
                 dirLight.intensity = Mathf.Lerp(1.35f, 0.75f, progress);
                 // Slowly tilt sun down
                 dirLight.transform.rotation = Quaternion.Euler(Mathf.Lerp(20f, 6f, progress), -65f, 0f);
+            }
+
+            if (skyboxInstance != null)
+            {
+                // Lerp skybox tint from standard light grey/white to warm orange-red sunset
+                Color targetTint = Color.Lerp(new Color(0.5f, 0.5f, 0.5f, 0.5f), new Color(0.85f, 0.42f, 0.28f, 0.5f), progress);
+                skyboxInstance.SetColor("_Tint", targetTint);
+                // Gradually dim the skybox exposure
+                skyboxInstance.SetFloat("_Exposure", Mathf.Lerp(1.1f, 0.45f, progress));
             }
         }
 

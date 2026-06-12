@@ -8,578 +8,13 @@ using UnityEngine.Rendering.Universal;
 using TMPro;
 using System.IO;
 using System.Collections.Generic;
+using RungTramTraSu.Editor;
 
 
 namespace RungTramTraSu
 {
     public class Phase1Setup : EditorWindow
     {
-        [MenuItem("Rung Tram Tra Su/Setup Phase 1 Scene")]
-        public static void CreatePhase1Scene()
-        {
-            // 0. Buộc Unity quét lại thư mục và import tất cả file .glb cùng Texture mới được sao chép
-            AssetDatabase.Refresh();
-
-            // 1. Tạo layer "Interactable" nếu chưa có
-            CreateLayer("Interactable");
-
-            // 2. Tạo Scene mới
-            var newScene = EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects, NewSceneMode.Single);
-            
-            // Xóa Main Camera mặc định để tự tạo Player Camera tối ưu hơn
-            GameObject defaultCam = GameObject.FindWithTag("MainCamera");
-            if (defaultCam != null) DestroyImmediate(defaultCam);
-
-            // Tìm đèn Directional Light mặc định để xoay góc sáng và nhuộm nắng sớm vàng ấm áp
-            GameObject dirLight = GameObject.Find("Directional Light");
-            if (dirLight != null)
-            {
-                dirLight.transform.rotation = Quaternion.Euler(20, -55, 0); // Góc nắng chiếu xiên tạo bóng dài thơ mộng
-                var lightComp = dirLight.GetComponent<Light>();
-                if (lightComp != null)
-                {
-                    lightComp.color = new Color(1.0f, 0.95f, 0.82f); // Ánh nắng vàng nhạt buổi sớm
-                    lightComp.intensity = 1.35f;                    // Tăng độ sáng nắng sớm
-                    lightComp.shadows = LightShadows.Soft;           // Bóng đổ mềm mại
-                    lightComp.shadowStrength = 0.85f;                // Độ đậm bóng đổ vừa phải, tự nhiên
-                }
-            }
-
-            // --- THIẾT LẬP BỐ CỤC ĐỊA HÌNH SÔNG NƯỚC RỪNG TRÀM ---
-
-            // Tải texture đất cỏ và bèo tấm
-            Texture2D grassTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/grass_dirt_texture.png");
-            Texture2D waterTex = AssetDatabase.LoadAssetAtPath<Texture2D>("Assets/Textures/duckweed_water_texture.png");
-
-            Material grassMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            if (grassTex != null)
-            {
-                grassMat.mainTexture = grassTex;
-                grassMat.mainTextureScale = new Vector2(15f, 20f);
-            }
-            else
-            {
-                grassMat.color = new Color(0.15f, 0.32f, 0.18f);
-            }
-            if (grassMat.HasProperty("_Smoothness")) grassMat.SetFloat("_Smoothness", 0.05f);
-            else if (grassMat.HasProperty("_Glossiness")) grassMat.SetFloat("_Glossiness", 0.05f);
-
-            Material waterMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            if (waterTex != null)
-            {
-                waterMat.mainTexture = waterTex;
-                waterMat.mainTextureScale = new Vector2(6f, 18f);
-            }
-            else
-            {
-                waterMat.color = new Color(0.08f, 0.22f, 0.18f);
-            }
-            if (waterMat.HasProperty("_Smoothness")) waterMat.SetFloat("_Smoothness", 0.85f);
-            waterMat.SetFloat("_Metallic", 0.15f);
-
-            // A. Tạo lưới địa hình hữu cơ (Organic Terrain Mesh Grid)
-            GameObject terrainObj = new GameObject("OrganicTerrain_Bank");
-            MeshFilter meshFilter = terrainObj.AddComponent<MeshFilter>();
-            MeshRenderer meshRenderer = terrainObj.AddComponent<MeshRenderer>();
-            MeshCollider meshCollider = terrainObj.AddComponent<MeshCollider>();
-
-            Mesh terrainMesh = new Mesh();
-            terrainMesh.name = "TerrainMesh";
-
-            int xSegments = 120;
-            int zSegments = 120;
-            int numVertices = (xSegments + 1) * (zSegments + 1);
-            Vector3[] vertices = new Vector3[numVertices];
-            Vector2[] uvs = new Vector2[numVertices];
-            int[] triangles = new int[xSegments * zSegments * 6];
-
-            float xMin = -55f;
-            float xMax = 55f;
-            float zMin = -65f;
-            float zMax = 65f;
-
-            int vIndex = 0;
-            for (int z = 0; z <= zSegments; z++)
-            {
-                float zPct = (float)z / zSegments;
-                float zPos = Mathf.Lerp(zMin, zMax, zPct);
-
-                for (int x = 0; x <= xSegments; x++)
-                {
-                    float xPct = (float)x / xSegments;
-                    float xPos = Mathf.Lerp(xMin, xMax, xPct);
-
-                    float yPos = GetHeightAt(xPos, zPos);
-                    vertices[vIndex] = new Vector3(xPos, yPos, zPos);
-                    uvs[vIndex] = new Vector2(xPos * 0.12f, zPos * 0.12f);
-                    vIndex++;
-                }
-            }
-
-            int tIndex = 0;
-            for (int z = 0; z < zSegments; z++)
-            {
-                for (int x = 0; x < xSegments; x++)
-                {
-                    int row1 = z * (xSegments + 1);
-                    int row2 = (z + 1) * (xSegments + 1);
-
-                    triangles[tIndex++] = row1 + x;
-                    triangles[tIndex++] = row2 + x;
-                    triangles[tIndex++] = row1 + x + 1;
-
-                    triangles[tIndex++] = row1 + x + 1;
-                    triangles[tIndex++] = row2 + x;
-                    triangles[tIndex++] = row2 + x + 1;
-                }
-            }
-
-            terrainMesh.vertices = vertices;
-            terrainMesh.uv = uvs;
-            terrainMesh.triangles = triangles;
-            terrainMesh.RecalculateNormals();
-            terrainMesh.RecalculateBounds();
-
-            meshFilter.sharedMesh = terrainMesh;
-            meshCollider.sharedMesh = terrainMesh;
-            meshRenderer.sharedMaterial = grassMat;
-
-            // B. Con kênh bèo tấm ở chính giữa (Rộng hơn chút để che phủ kênh uốn lượn)
-            GameObject river = GameObject.CreatePrimitive(PrimitiveType.Plane);
-            river.name = "RiverWater_Canal";
-            river.transform.position = new Vector3(25f, -1.0f, 0f); // Mặt nước sông bèo ở Y = -1.0m
-            river.transform.localScale = new Vector3(4.5f, 1f, 15f);   // Đủ rộng để phủ kín phần uốn lượn sông (45m x 150m)
-            DestroyImmediate(river.GetComponent<MeshCollider>());
-            river.GetComponent<Renderer>().sharedMaterial = waterMat;
-
-            // B-Extra: Đáy sông vật lý dày để chống lọt lòng sông
-            GameObject riverBed = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            riverBed.name = "RiverBed_Collider";
-            riverBed.transform.position = new Vector3(25f, -6.5f, 0f);
-            riverBed.transform.localScale = new Vector3(30f, 10.0f, 130f);
-            DestroyImmediate(riverBed.GetComponent<MeshRenderer>());
-
-            // C. Cầu Tàu Gỗ (Wooden Pier) bắc nhô ra kênh sông, tự động điều chỉnh cao độ theo bờ đất
-            float pierGroundY = GetHeightAt(15f, 8f);
-            GameObject pierContainer = new GameObject("WoodenPier");
-
-            GameObject plank = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            plank.name = "PierPlank";
-            plank.transform.SetParent(pierContainer.transform);
-            plank.transform.position = new Vector3(15f, pierGroundY + 0.15f, 8f);
-            plank.transform.localScale = new Vector3(3.5f, 0.08f, 1.3f);
-
-            GameObject post1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            post1.name = "PierPost_1";
-            post1.transform.SetParent(pierContainer.transform);
-            post1.transform.position = new Vector3(16.2f, pierGroundY - 0.8f, 7.3f);
-            post1.transform.localScale = new Vector3(0.15f, 2.0f, 0.15f);
-
-            GameObject post2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            post2.name = "PierPost_2";
-            post2.transform.SetParent(pierContainer.transform);
-            post2.transform.position = new Vector3(16.2f, pierGroundY - 0.8f, 8.7f);
-            post2.transform.localScale = new Vector3(0.15f, 2.0f, 0.15f);
-
-            Material woodMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            woodMat.color = new Color(0.32f, 0.2f, 0.11f);
-            if (woodMat.HasProperty("_Smoothness")) woodMat.SetFloat("_Smoothness", 0.1f);
-            plank.GetComponent<Renderer>().sharedMaterial = woodMat;
-            post1.GetComponent<Renderer>().sharedMaterial = woodMat;
-            post2.GetComponent<Renderer>().sharedMaterial = woodMat;
-
-
-            // --- IMPORT VÀ SẮP ĐẶT MÔ HÌNH CHÍNH (KEY MODELS) ---
-
-            // 1. Ngôi nhà sàn (Stilt House) nhô ra bờ sông bên sườn trái
-            GameObject house = LoadAndInstantiate("Assets/Models/VietnameseHouse/thatched+stilt+house+3d+model.glb", "Stilt House", new Vector3(-5f, 3.8f, 0f), Quaternion.identity);
-            if (house != null)
-            {
-                house.transform.localScale = new Vector3(18f, 18f, 18f);
-                AddMeshCollidersRecursively(house);
-            }
-
-            // 2. Ông Ngoại (Grandpa NPC) đứng ngay hiên nhà
-            float grandpaY = GetHeightAt(-1.0f, 0f);
-            GameObject grandpa = LoadAndInstantiate("Assets/Models/VietnameseGrandpa/Meshy_AI_Old_Man_with_Open_Arm_biped/Meshy_AI_Old_Man_with_Open_Arm_biped_Character_output.glb", "Grandpa_NPC", new Vector3(-1.0f, grandpaY, 0f), Quaternion.Euler(0, 135f, 0));
-            if (grandpa != null)
-            {
-                grandpa.transform.localScale = new Vector3(0.85f, 0.85f, 0.85f);
-                grandpa.layer = LayerMask.NameToLayer("Interactable");
-                var col = grandpa.AddComponent<CapsuleCollider>();
-                col.center = new Vector3(0, 0.9f, 0);
-                col.radius = 0.35f;
-                col.height = 1.8f;
-                grandpa.AddComponent<NPCGrandpa>();
-            }
-
-            // 3. Chiếc xuồng ba lá (Sampan Boat) neo sát mép cầu tàu
-            GameObject boat = LoadAndInstantiate("Assets/Models/VietnameseBoat/mô+hình+thuyền+sampan+gỗ+3d.glb", "Sampan Boat", new Vector3(17.2f, -0.82f, 8f), Quaternion.Euler(0f, 5f, 0f));
-            GameObject boatTriggerZone = null;
-            if (boat != null)
-            {
-                boat.transform.localScale = new Vector3(5f, 5f, 5f);
-                SetupPerfectBoatCollider(boat);
-                boat.AddComponent<WaterFloat>();
-
-                boatTriggerZone = new GameObject("BoatTriggerZone");
-                boatTriggerZone.transform.SetParent(boat.transform, false);
-                boatTriggerZone.transform.localPosition = new Vector3(0, 0.3f, 0);
-
-                var triggerCol = boatTriggerZone.AddComponent<BoxCollider>();
-                triggerCol.isTrigger = true;
-                triggerCol.size = new Vector3(1.2f, 0.8f, 3.0f);
-
-                boatTriggerZone.AddComponent<BoatTrigger>();
-            }
-
-            // Biển báo gỗ mộc mạc tại bến xuồng
-            CreateScenicWoodenSign("Kênh Dẫn Trà Sư\n(Bến Xuồng Ông Ngoại)", new Vector3(12.5f, pierGroundY + 0.8f, 6.5f), -35f);
-
-            // 4. Cây Xoài nhiệm vụ đặt ở góc vườn thoáng (Có cao độ hữu cơ)
-            float mangoY = GetHeightAt(-3f, 14f);
-            GameObject mangoTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "Mango_Tree_Target", new Vector3(-3f, mangoY + 3.5f, 14f), Quaternion.identity);
-            if (mangoTree != null)
-            {
-                mangoTree.transform.localScale = new Vector3(12f, 12f, 12f);
-                mangoTree.layer = LayerMask.NameToLayer("Interactable");
-                mangoTree.AddComponent<WindSway>();
-
-                GameObject trunkCol = new GameObject("TrunkCollider");
-                trunkCol.transform.SetParent(mangoTree.transform, false);
-                trunkCol.transform.localPosition = Vector3.zero;
-                trunkCol.transform.localScale = new Vector3(1f/12f, 1f/12f, 1f/12f);
-
-                var col = trunkCol.AddComponent<CapsuleCollider>();
-                col.center = new Vector3(0f, 1.5f, 0f);
-                col.radius = 0.6f;
-                col.height = 4.0f;
-            }
-
-
-            // --- SINH RỪNG TRÀM HỮU CƠ UỐN LƯỢN DỌC KÊNH & NGHIÊNG BẬP BÙNG ---
-
-            Random.InitState(12345);
-            GameObject forestContainer = new GameObject("TeaTree_Forest");
-            int totalTrees = 55;
-            for (int i = 0; i < totalTrees; i++)
-            {
-                float zPos = Random.Range(-55f, 55f);
-                // Tìm tâm kênh ở cao độ Z này để tính khoảng cách phân bố cây
-                float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
-                float xPos = 0f;
-
-                if (i < 25)
-                {
-                    // Rừng bờ trái: Nằm từ rìa ngoài đến gần mép kênh (tránh khoảng sân trước nhà X từ -12 đến 12 ở gần pier)
-                    if (zPos > -20f && zPos < 25f)
-                    {
-                        // Chừa sân nhà ở khu vực này, cây đẩy lùi sâu về phía âm X
-                        xPos = Random.Range(-40f, -18f);
-                    }
-                    else
-                    {
-                        xPos = Random.Range(-38f, canalCenter - 9f);
-                    }
-                }
-                else
-                {
-                    // Rừng bờ phải: Nằm từ mép phải kênh ra rìa
-                    xPos = Random.Range(canalCenter + 9f, canalCenter + 26f);
-                }
-
-                float yPos = GetHeightAt(xPos, zPos);
-                Vector3 treePos = new Vector3(xPos, yPos + 3.5f, zPos);
-
-                // Tính toán độ nghiêng hướng ra bờ sông (leaning effect)
-                float distToCanal = Mathf.Abs(xPos - canalCenter);
-                float tiltAngle = 0f;
-                if (distToCanal < 14f)
-                {
-                    // Càng sát mép nước càng nghiêng (tối đa nghiêng 15-28 độ)
-                    float proximity = Mathf.Clamp01((14f - distToCanal) / 5f);
-                    tiltAngle = proximity * Random.Range(12f, 25f);
-                }
-
-                // Nếu ở bờ trái thì nghiêng sang phải (âm Z rotation), bờ phải thì nghiêng sang trái (dương Z rotation)
-                float zRotationOffset = (xPos < canalCenter) ? -tiltAngle : tiltAngle;
-                Quaternion treeRot = Quaternion.Euler(Random.Range(-5f, 5f), Random.Range(0f, 360f), zRotationOffset);
-
-                GameObject forestTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "TeaTree_" + i, treePos, treeRot);
-                if (forestTree != null)
-                {
-                    forestTree.transform.SetParent(forestContainer.transform);
-                    float rndScale = Random.Range(9.5f, 13.5f);
-                    forestTree.transform.localScale = new Vector3(rndScale, rndScale, rndScale);
-                    forestTree.AddComponent<WindSway>();
-
-                    GameObject trunkCol = new GameObject("TrunkCollider");
-                    trunkCol.transform.SetParent(forestTree.transform, false);
-                    trunkCol.transform.localPosition = Vector3.zero;
-                    trunkCol.transform.localScale = new Vector3(1f/rndScale, 1f/rndScale, 1f/rndScale);
-
-                    var col = trunkCol.AddComponent<CapsuleCollider>();
-                    col.center = new Vector3(0f, 1.5f, 0f);
-                    col.radius = 0.5f;
-                    col.height = 4.0f;
-
-                    // Phát triển ngoại cảnh: Rễ thở tràm sinh ngẫu nhiên quanh gốc và cò trắng đậu trên ngọn
-                    CreateBreathingRootsAroundTree(treePos, forestContainer.transform, Random.Range(3, 7));
-                    CreateBirdInTree(treePos, forestTree.transform);
-                }
-            }
-
-            // --- SINH BÈO TẤM / HOA SÚNG NỔI (3D FLOATING LILY PADS) ---
-            GameObject lilyContainer = new GameObject("FloatingLilyPads");
-            Material lilyMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            lilyMat.color = new Color(0.12f, 0.45f, 0.22f);
-            if (lilyMat.HasProperty("_Smoothness")) lilyMat.SetFloat("_Smoothness", 0.08f);
-
-            for (int i = 0; i < 40; i++)
-            {
-                float zPos = Random.Range(-45f, 45f);
-                float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
-                // Bèo nổi rải rác trong kênh
-                float xPos = canalCenter + Random.Range(-5.5f, 5.5f);
-                float yPos = -0.98f; // Hơi nhô trên mặt nước Y = -1.0f
-
-                GameObject pad = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                pad.name = "LilyPad_" + i;
-                pad.transform.SetParent(lilyContainer.transform);
-                pad.transform.position = new Vector3(xPos, yPos, zPos);
-                float padScale = Random.Range(0.6f, 1.4f);
-                pad.transform.localScale = new Vector3(padScale, 0.01f, padScale);
-                pad.transform.rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-                
-                // Hủy va chạm để tránh gây cản trở thuyền hoặc người chơi
-                DestroyImmediate(pad.GetComponent<Collider>());
-                pad.GetComponent<Renderer>().sharedMaterial = lilyMat;
-
-                // Sinh hoa súng hồng rực rỡ nổi trên thảm bèo xanh
-                if (Random.value < 0.35f)
-                {
-                    CreateLotusFlower(new Vector3(xPos, yPos, zPos), pad.transform);
-                }
-            }
-
-            // --- SINH RẶNG SẬY / CỎ VEN BỜ (SHORELINE REEDS) ---
-            GameObject reedContainer = new GameObject("ShorelineReeds");
-            Material reedMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            reedMat.color = new Color(0.24f, 0.38f, 0.14f);
-            if (reedMat.HasProperty("_Smoothness")) reedMat.SetFloat("_Smoothness", 0.05f);
-
-            for (int i = 0; i < 90; i++)
-            {
-                float zPos = Random.Range(-50f, 50f);
-                float canalCenter = 25f + Mathf.Sin(zPos * 0.08f) * 5f;
-                
-                // Mọc ở viền kênh (X từ canalCenter - 6.8 đến canalCenter - 5.2 hoặc canalCenter + 5.2 đến canalCenter + 6.8)
-                float xPos = 0f;
-                if (Random.value > 0.5f)
-                {
-                    xPos = canalCenter - Random.Range(5.2f, 6.8f);
-                }
-                else
-                {
-                    xPos = canalCenter + Random.Range(5.2f, 6.8f);
-                }
-
-                float yPos = GetHeightAt(xPos, zPos);
-                // Không sinh lau sậy đè lên bến cầu tàu gỗ
-                if (zPos > 6.5f && zPos < 9.5f && xPos < canalCenter) continue;
-
-                GameObject reed = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                reed.name = "Reed_" + i;
-                reed.transform.SetParent(reedContainer.transform);
-                
-                float reedHeight = Random.Range(1.2f, 2.3f);
-                reed.transform.position = new Vector3(xPos, yPos + reedHeight * 0.5f - 0.2f, zPos);
-                reed.transform.localScale = new Vector3(0.06f, reedHeight, 0.06f);
-                
-                DestroyImmediate(reed.GetComponent<Collider>());
-                reed.GetComponent<Renderer>().sharedMaterial = reedMat;
-            }
-
-            // --- SINH HÀNH LANG LỐI ĐI VỚI HÀNG SẬY / CỎ VEN BỜ (PATH CORRIDOR REEDS) ---
-            GameObject pathCorridor = new GameObject("PathReedsCorridor");
-            Material pathReedMat = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            pathReedMat.color = new Color(0.2f, 0.4f, 0.15f);
-            if (pathReedMat.HasProperty("_Smoothness")) pathReedMat.SetFloat("_Smoothness", 0.05f);
-
-            for (float x = -1f; x <= 13f; x += 0.4f)
-            {
-                float zPath = 8f * (x + 1f) / 14f;
-                // Add some slight randomness
-                float xOffset = Random.Range(-0.1f, 0.1f);
-                float zOffset1 = Random.Range(-0.15f, 0.15f) + 1.6f;
-                float zOffset2 = Random.Range(-0.15f, 0.15f) - 1.6f;
-
-                // Left row of reeds (positive offset)
-                GameObject reedLeft = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                reedLeft.name = $"PathReed_L_{x}";
-                reedLeft.transform.SetParent(pathCorridor.transform);
-                float h1 = Random.Range(1.5f, 2.5f);
-                float y1 = GetHeightAt(x + xOffset, zPath + zOffset1);
-                reedLeft.transform.position = new Vector3(x + xOffset, y1 + h1 * 0.5f - 0.1f, zPath + zOffset1);
-                reedLeft.transform.localScale = new Vector3(0.06f, h1, 0.06f);
-                DestroyImmediate(reedLeft.GetComponent<Collider>());
-                reedLeft.GetComponent<Renderer>().sharedMaterial = pathReedMat;
-
-                // Right row of reeds (negative offset)
-                GameObject reedRight = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-                reedRight.name = $"PathReed_R_{x}";
-                reedRight.transform.SetParent(pathCorridor.transform);
-                float h2 = Random.Range(1.5f, 2.5f);
-                float y2 = GetHeightAt(x + xOffset, zPath + zOffset2);
-                reedRight.transform.position = new Vector3(x + xOffset, y2 + h2 * 0.5f - 0.1f, zPath + zOffset2);
-                reedRight.transform.localScale = new Vector3(0.06f, h2, 0.06f);
-                DestroyImmediate(reedRight.GetComponent<Collider>());
-                reedRight.GetComponent<Renderer>().sharedMaterial = pathReedMat;
-            }
-
-
-            // --- THIẾT LẬP NHÂN VẬT CHƠI (PLAYER & CAMERA) ---
-
-            GameObject player = new GameObject("Player");
-            player.tag = "Player";
-            
-            // Xuất phát tại Y an toàn phía trên địa hình
-            float playerStartY = GetHeightAt(6f, -10f) + 1.5f;
-            player.transform.position = new Vector3(6f, playerStartY, -10f);
-
-            var charController = player.AddComponent<CharacterController>();
-            charController.height = 2f;
-            charController.radius = 0.4f;
-            charController.center = new Vector3(0, 1f, 0);
-
-            var playerInput = player.AddComponent<PlayerInput>();
-            InputActionAsset inputAsset = AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/InputSystem_Actions.inputactions");
-            if (inputAsset != null)
-            {
-                playerInput.actions = inputAsset;
-                playerInput.defaultActionMap = "Player";
-            }
-
-            var playerCtrl = player.AddComponent<PlayerController>();
-            var playerInteract = player.AddComponent<PlayerInteraction>();
-
-            GameObject camObj = new GameObject("Main Camera");
-            camObj.tag = "MainCamera";
-            camObj.transform.SetParent(player.transform, false);
-            camObj.transform.localPosition = new Vector3(0, 1.8f, 0);
-            var camera = camObj.AddComponent<Camera>();
-            camObj.AddComponent<AudioListener>();
-
-            var cameraData = camObj.AddComponent<UniversalAdditionalCameraData>();
-            cameraData.renderPostProcessing = true;
-
-            var photoCam = camObj.AddComponent<PhotoCamera>();
-
-            SerializedObject serCtrl = new SerializedObject(playerCtrl);
-            serCtrl.FindProperty("playerCamera").objectReferenceValue = camObj.transform;
-            serCtrl.ApplyModifiedProperties();
-
-            SerializedObject serInteract = new SerializedObject(playerInteract);
-            serInteract.FindProperty("cameraTransform").objectReferenceValue = camObj.transform;
-            serInteract.FindProperty("interactableLayer").intValue = 1 << LayerMask.NameToLayer("Interactable");
-            serInteract.ApplyModifiedProperties();
-
-            GameObject cameraHandModel = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cameraHandModel.name = "CameraHandModel";
-            cameraHandModel.transform.SetParent(camObj.transform, false);
-            cameraHandModel.transform.localPosition = new Vector3(0.2f, -0.25f, 0.4f);
-            cameraHandModel.transform.localRotation = Quaternion.identity;
-            cameraHandModel.transform.localScale = new Vector3(0.12f, 0.08f, 0.1f);
-            DestroyImmediate(cameraHandModel.GetComponent<BoxCollider>());
-
-
-            // --- XÂY DỰNG GIAO DIỆN (UI CANVASES) ---
-            GameObject gameUI = CreateBaseGameUI(photoCam, cameraHandModel, out TextMeshProUGUI objText);
-
-            Transform popupTrans = gameUI.transform.Find("CameraPopupPanel");
-            GameObject cameraPopupPanel = popupTrans != null ? popupTrans.gameObject : null;
-
-            GameObject managersObj = new GameObject("Managers");
-            var diagManager = managersObj.AddComponent<DialogueManager>();
-
-            // 10. Tạo Phase1Manager
-            var phaseManager = managersObj.AddComponent<Phase1Manager>();
-            SerializedObject serPhase = new SerializedObject(phaseManager);
-            serPhase.FindProperty("photoCamera").objectReferenceValue = photoCam;
-            serPhase.FindProperty("cameraHandModel").objectReferenceValue = cameraHandModel;
-            
-            if (mangoTree != null)
-            {
-                serPhase.FindProperty("mangoTreeTarget").objectReferenceValue = mangoTree.transform;
-            }
-            if (boatTriggerZone != null)
-            {
-                serPhase.FindProperty("boatTriggerZone").objectReferenceValue = boatTriggerZone;
-            }
-            serPhase.FindProperty("cameraPopupPanel").objectReferenceValue = cameraPopupPanel;
-            serPhase.FindProperty("objectiveText").objectReferenceValue = objText;
-            serPhase.ApplyModifiedProperties();
-
-
-            // --- CẤU HÌNH HẬU KỲ ĐIỆN ẢNH (POST-PROCESSING) & SƯƠNG MÙ (FOG) ---
-
-            // 1. Cấu hình Fog (Sương mù buổi sáng vùng sông nước miền Tây)
-            RenderSettings.fog = true;
-            RenderSettings.fogColor = new Color(0.60f, 0.73f, 0.65f); // Sương mù xám xanh lục nhạt
-            RenderSettings.fogMode = FogMode.ExponentialSquared;
-            RenderSettings.fogDensity = 0.022f; // Sương mù đậm đặc hơn tí tạo độ mờ ảo trong rừng tràm
-
-            // 2. Tạo đối tượng Global Volume chứa hậu kỳ
-            GameObject volumeObj = new GameObject("Global PostProcess Volume");
-            var volume = volumeObj.AddComponent<Volume>();
-            volume.isGlobal = true;
-
-            // Tạo Volume Profile mới
-            VolumeProfile profile = ScriptableObject.CreateInstance<VolumeProfile>();
-
-            // - ACES Tonemapping
-            var tonemapping = profile.Add<Tonemapping>();
-            tonemapping.active = true;
-            tonemapping.mode.Override(TonemappingMode.ACES);
-
-            // - Bloom (Nắng vàng tỏa rực rỡ qua sương sớm)
-            var bloom = profile.Add<Bloom>();
-            bloom.active = true;
-            bloom.threshold.Override(0.78f);
-            bloom.intensity.Override(2.2f);
-            bloom.scatter.Override(0.72f);
-            bloom.tint.Override(new Color(1f, 0.94f, 0.80f)); 
-
-            // - Color Adjustments (Nâng độ rực và tương phản của bèo xanh, cỏ cây)
-            var colorAdjust = profile.Add<ColorAdjustments>();
-            colorAdjust.active = true;
-            colorAdjust.contrast.Override(25f);
-            colorAdjust.saturation.Override(32f);
-            colorAdjust.postExposure.Override(0.24f);
-
-            // - Vignette (Cinematic border)
-            var vignette = profile.Add<Vignette>();
-            vignette.active = true;
-            vignette.intensity.Override(0.28f);
-            vignette.smoothness.Override(0.4f);
-            vignette.rounded.Override(true);
-
-            volume.sharedProfile = profile;
-
-            // Lưu profile dưới dạng asset trong Scenes để không bị mất khi đóng Scene
-            string profilePath = "Assets/Scenes/Phase1_VolumeProfile.asset";
-            AssetDatabase.CreateAsset(profile, profilePath);
-
-
-            // 11. Lưu Scene và báo kết quả
-            EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase1_GrandpaHouse.unity");
-            Debug.Log("==> SETUP DỰ ÁN THÀNH CÔNG! Đã lưu scene tại: Assets/Scenes/Phase1_GrandpaHouse.unity");
-            
-            if (!Application.isBatchMode)
-            {
-                EditorUtility.DisplayDialog("Thành công!", "Nâng cấp hình ảnh hậu kỳ, ánh sáng và gió động cành lá đã hoàn tất!", "Đồng ý");
-            }
-        }
 
         private static GameObject LoadAndInstantiate(string path, string newName, Vector3 position, Quaternion rotation)
         {
@@ -767,13 +202,24 @@ namespace RungTramTraSu
         [MenuItem("Rung Tram Tra Su/Setup All Scenes")]
         public static void CreateAllScenes()
         {
-            CreatePhase1Scene();
+            if (EditorApplication.isPlaying)
+            {
+                EditorUtility.DisplayDialog("Lỗi!", "Không thể chạy thiết lập khi đang ở chế độ Play mode. Hãy tắt nút Play trước khi chạy!", "Đồng ý");
+                return;
+            }
+
+            if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
+            {
+                return;
+            }
+
+            // 1. Chạy Setup Phase 2 -> 5 (các phase này tự động beautify ở cuối mỗi CreatePhaseXScene)
             CreatePhase2Scene();
             CreatePhase3Scene();
             CreatePhase4Scene();
             CreatePhase5Scene();
             
-            // Add all scenes to Build Settings
+            // 2. Đăng ký Build Settings (giữ Phase 1 nguyên bản từ Git)
             List<EditorBuildSettingsScene> buildScenes = new List<EditorBuildSettingsScene>();
             buildScenes.Add(new EditorBuildSettingsScene("Assets/Scenes/Phase1_GrandpaHouse.unity", true));
             buildScenes.Add(new EditorBuildSettingsScene("Assets/Scenes/Phase2_Canal.unity", true));
@@ -781,11 +227,14 @@ namespace RungTramTraSu
             buildScenes.Add(new EditorBuildSettingsScene("Assets/Scenes/Phase4_Sanctuary.unity", true));
             buildScenes.Add(new EditorBuildSettingsScene("Assets/Scenes/Phase5_Sunset.unity", true));
             EditorBuildSettings.scenes = buildScenes.ToArray();
+
+            // 3. Tự động mở lại Scene Phase 1 làm Scene hoạt động hiện tại trong Editor
+            EditorSceneManager.OpenScene("Assets/Scenes/Phase1_GrandpaHouse.unity", OpenSceneMode.Single);
             
-            Debug.Log("==> HOÀN TẤT TẠO TOÀN BỘ SCENES VÀ ĐĂNG KÝ BUILD SETTINGS!");
+            Debug.Log("==> HOÀN TẤT TẠO CÁC SCENES PHASE 2-5 (GIỮ NGUYÊN BẢN PHASE 1 TỪ GIT) VÀ ĐĂNG KÝ BUILD SETTINGS!");
             if (!Application.isBatchMode)
             {
-                EditorUtility.DisplayDialog("Thành công!", "Đã tạo 5 Phase game và đăng ký Build Settings thành công!", "Đồng ý");
+                EditorUtility.DisplayDialog("Thành công!", "Đã thiết lập xong các Phase 2-5 và đăng ký Build Settings (Phase 1 giữ nguyên bản từ Git) thành công!", "Đồng ý");
             }
         }
 
@@ -1122,6 +571,7 @@ namespace RungTramTraSu
             SetupPostProcessingAndFog(camObj);
 
             EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase2_Canal.unity");
+            SceneBeautifierAll.BeautifyPhase2();
             Debug.Log("Successfully created Phase 2 scene!");
         }
 
@@ -1404,6 +854,7 @@ namespace RungTramTraSu
             SetupPostProcessingAndFog(camObj);
 
             EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase3_BambooBridge.unity");
+            SceneBeautifierAll.BeautifyPhase3();
             Debug.Log("Successfully created Phase 3 scene!");
         }
 
@@ -1671,6 +1122,7 @@ namespace RungTramTraSu
             SetupPostProcessingAndFog(camObj);
 
             EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase4_Sanctuary.unity");
+            SceneBeautifierAll.BeautifyPhase4();
             Debug.Log("Successfully created Phase 4 scene!");
         }
 
@@ -1714,48 +1166,175 @@ namespace RungTramTraSu
             forestFloor.transform.localScale = new Vector3(8f, 1f, 8f);
             forestFloor.GetComponent<Renderer>().sharedMaterial = grassMat;
 
-            // Observation Tower
+            // Observation Tower (Premium structure with corner posts, landing platforms, straight stairs and smooth ramp colliders)
             Vector3 towerCenter = new Vector3(25f, -0.5f, 15f);
-            GameObject pillar = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            pillar.name = "ObservationTower_Pillar";
-            pillar.transform.position = towerCenter + new Vector3(0f, 6.0f, 0f);
-            pillar.transform.localScale = new Vector3(2.5f, 6.0f, 2.5f);
-            pillar.GetComponent<Renderer>().sharedMaterial = woodMat;
+            
+            // Try to load high-quality wood material
+            Material customWoodMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/BoardwalkWoodMat.mat");
+            Material activeWoodMat = customWoodMat != null ? customWoodMat : woodMat;
 
-            // Spiral Steps (36 steps spiraling up)
-            for (int i = 0; i < 36; i++)
+            GameObject towerContainer = new GameObject("ObservationTower");
+
+            // 1. Spawning 4 giant corner posts (Pillars)
+            Vector3[] pillarPositions = new Vector3[]
             {
-                GameObject step = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                step.name = "SpiralStep_" + i;
-                float angle = i * 20f * Mathf.Deg2Rad;
-                float x = Mathf.Cos(angle) * 1.6f;
-                float z = Mathf.Sin(angle) * 1.6f;
-                step.transform.position = towerCenter + new Vector3(x, i * 0.31f + 0.15f, z);
-                step.transform.rotation = Quaternion.Euler(0f, -i * 20f, 0f);
-                step.transform.localScale = new Vector3(1.6f, 0.08f, 0.45f);
-                step.GetComponent<Renderer>().sharedMaterial = woodMat;
+                new Vector3(21.5f, 5.75f, 11.5f), // LF
+                new Vector3(28.5f, 5.75f, 11.5f), // RF
+                new Vector3(28.5f, 5.75f, 18.5f), // RB
+                new Vector3(21.5f, 5.75f, 18.5f)  // LB
+            };
+            for (int i = 0; i < pillarPositions.Length; i++)
+            {
+                GameObject pillarObj = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                pillarObj.name = (i == 0) ? "ObservationTower_Pillar" : "ObservationTower_Pillar_" + i;
+                pillarObj.transform.SetParent(towerContainer.transform);
+                pillarObj.transform.position = pillarPositions[i];
+                pillarObj.transform.localScale = new Vector3(0.5f, 6.25f, 0.5f);
+                pillarObj.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
             }
 
-            // Viewing Deck Platform
-            GameObject deck = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            deck.name = "ViewingDeck_Platform";
-            deck.transform.position = towerCenter + new Vector3(0f, 11.25f, 0f);
-            deck.transform.localScale = new Vector3(4.8f, 0.08f, 4.8f);
-            deck.GetComponent<Renderer>().sharedMaterial = woodMat;
+            // 2. Horizontal support beams connecting the posts at different heights
+            float[] beamHeights = new float[] { 3.0f, 6.8f, 10.65f };
+            foreach (float h in beamHeights)
+            {
+                // Left & Right beams
+                GameObject leftBeam = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                leftBeam.name = "SupportBeam_Left_" + h;
+                leftBeam.transform.SetParent(towerContainer.transform);
+                leftBeam.transform.position = new Vector3(21.5f, h, 15.0f);
+                leftBeam.transform.localScale = new Vector3(0.25f, 0.25f, 7.0f);
+                leftBeam.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+                Object.DestroyImmediate(leftBeam.GetComponent<Collider>());
 
-            // Deck Railings
-            for (int i = 0; i < 8; i++)
+                GameObject rightBeam = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                rightBeam.name = "SupportBeam_Right_" + h;
+                rightBeam.transform.SetParent(towerContainer.transform);
+                rightBeam.transform.position = new Vector3(28.5f, h, 15.0f);
+                rightBeam.transform.localScale = new Vector3(0.25f, 0.25f, 7.0f);
+                rightBeam.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+                Object.DestroyImmediate(rightBeam.GetComponent<Collider>());
+
+                // Front & Back beams
+                GameObject frontBeam = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                frontBeam.name = "SupportBeam_Front_" + h;
+                frontBeam.transform.SetParent(towerContainer.transform);
+                frontBeam.transform.position = new Vector3(25.0f, h, 11.5f);
+                frontBeam.transform.localScale = new Vector3(7.0f, 0.25f, 0.25f);
+                frontBeam.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+                Object.DestroyImmediate(frontBeam.GetComponent<Collider>());
+
+                GameObject backBeam = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                backBeam.name = "SupportBeam_Back_" + h;
+                backBeam.transform.SetParent(towerContainer.transform);
+                backBeam.transform.position = new Vector3(25.0f, h, 18.5f);
+                backBeam.transform.localScale = new Vector3(7.0f, 0.25f, 0.25f);
+                backBeam.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+                Object.DestroyImmediate(backBeam.GetComponent<Collider>());
+            }
+
+            // 3. Spawning landing platforms
+            GameObject landing1 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            landing1.name = "ObservationTower_Landing_1";
+            landing1.transform.SetParent(towerContainer.transform);
+            landing1.transform.position = new Vector3(21.5f, 3.0f, 18.5f);
+            landing1.transform.localScale = new Vector3(2.5f, 0.2f, 2.5f);
+            landing1.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+
+            GameObject landing2 = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            landing2.name = "ObservationTower_Landing_2";
+            landing2.transform.SetParent(towerContainer.transform);
+            landing2.transform.position = new Vector3(28.5f, 6.8f, 18.5f);
+            landing2.transform.localScale = new Vector3(2.5f, 0.2f, 2.5f);
+            landing2.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+
+            // 4. Spawning Viewing Deck Platform
+            GameObject deck = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            deck.name = "ViewingDeck_Platform";
+            deck.transform.SetParent(towerContainer.transform);
+            deck.transform.position = new Vector3(25.0f, 10.65f, 15.0f);
+            deck.transform.localScale = new Vector3(7.4f, 0.2f, 7.4f);
+            deck.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+
+            // 5. Spawning straight stair flights (using smooth ramp helper)
+            CreateStairFlight("StairFlight_1", new Vector3(21.5f, -0.5f, 11.5f), new Vector3(21.5f, 3.0f, 17.25f), 1.2f, activeWoodMat, towerContainer);
+            CreateStairFlight("StairFlight_2", new Vector3(22.75f, 3.0f, 18.5f), new Vector3(27.25f, 6.8f, 18.5f), 1.2f, activeWoodMat, towerContainer);
+            CreateStairFlight("StairFlight_3", new Vector3(28.5f, 6.8f, 17.25f), new Vector3(28.5f, 10.65f, 12.5f), 1.2f, activeWoodMat, towerContainer);
+
+            // 6. Spawning safety railings for Landings and Top Deck
+            // Landing 1 Railings
+            GameObject land1Rail = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            land1Rail.name = "Landing1_Rail";
+            land1Rail.transform.SetParent(towerContainer.transform);
+            land1Rail.transform.position = new Vector3(20.3f, 3.6f, 18.5f);
+            land1Rail.transform.localScale = new Vector3(0.08f, 1.0f, 2.5f);
+            land1Rail.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+
+            // Landing 2 Railings
+            GameObject land2Rail = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            land2Rail.name = "Landing2_Rail";
+            land2Rail.transform.SetParent(towerContainer.transform);
+            land2Rail.transform.position = new Vector3(29.7f, 7.4f, 18.5f);
+            land2Rail.transform.localScale = new Vector3(0.08f, 1.0f, 2.5f);
+            land2Rail.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+
+            // Top Deck Railings
+            Vector3[] deckRailPos = new Vector3[]
+            {
+                new Vector3(21.3f, 11.25f, 15.0f),
+                new Vector3(25.0f, 11.25f, 18.7f),
+                new Vector3(24.3f, 11.25f, 11.3f), // front left
+                new Vector3(28.7f, 11.25f, 15.8f)  // right back
+            };
+            Vector3[] deckRailScales = new Vector3[]
+            {
+                new Vector3(0.08f, 1.0f, 7.4f),
+                new Vector3(7.4f, 1.0f, 0.08f),
+                new Vector3(6.0f, 1.0f, 0.08f), // leaves entrance open on right
+                new Vector3(0.08f, 1.0f, 5.8f)  // leaves entrance open on front
+            };
+            for (int i = 0; i < 4; i++)
             {
                 GameObject rail = GameObject.CreatePrimitive(PrimitiveType.Cube);
                 rail.name = "DeckRail_" + i;
-                float angle = i * 45f * Mathf.Deg2Rad;
-                float x = Mathf.Cos(angle) * 2.3f;
-                float z = Mathf.Sin(angle) * 2.3f;
-                rail.transform.position = towerCenter + new Vector3(x, 11.8f, z);
-                rail.transform.rotation = Quaternion.Euler(0f, -i * 45f, 0f);
-                rail.transform.localScale = new Vector3(1.7f, 1.0f, 0.08f);
-                rail.GetComponent<Renderer>().sharedMaterial = woodMat;
+                rail.transform.SetParent(towerContainer.transform);
+                rail.transform.position = deckRailPos[i];
+                rail.transform.localScale = deckRailScales[i];
+                rail.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
             }
+
+            // 7. Spawning Roof support posts and sloped A-frame Gable Roof
+            Vector3[] roofPillarPos = new Vector3[]
+            {
+                new Vector3(21.5f, 12.125f, 11.5f),
+                new Vector3(28.5f, 12.125f, 11.5f),
+                new Vector3(28.5f, 12.125f, 18.5f),
+                new Vector3(21.5f, 12.125f, 18.5f)
+            };
+            for (int i = 0; i < roofPillarPos.Length; i++)
+            {
+                GameObject rp = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                rp.name = "RoofPillar_" + i;
+                rp.transform.SetParent(towerContainer.transform);
+                rp.transform.position = roofPillarPos[i];
+                rp.transform.localScale = new Vector3(0.25f, 1.375f, 0.25f);
+                rp.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+            }
+
+            GameObject roofLeft = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            roofLeft.name = "Roof_Left";
+            roofLeft.transform.SetParent(towerContainer.transform);
+            roofLeft.transform.position = new Vector3(23.2f, 13.7f, 15.0f);
+            roofLeft.transform.rotation = Quaternion.Euler(0f, 0f, 15f);
+            roofLeft.transform.localScale = new Vector3(4.2f, 0.15f, 8.0f);
+            roofLeft.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
+
+            GameObject roofRight = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            roofRight.name = "Roof_Right";
+            roofRight.transform.SetParent(towerContainer.transform);
+            roofRight.transform.position = new Vector3(26.8f, 13.7f, 15.0f);
+            roofRight.transform.rotation = Quaternion.Euler(0f, 0f, -15f);
+            roofRight.transform.localScale = new Vector3(4.2f, 0.15f, 8.0f);
+            roofRight.GetComponent<Renderer>().sharedMaterial = activeWoodMat;
 
             // Biển báo gỗ mộc mạc tại vọng cảnh đài
             CreateScenicWoodenSign("Vọng Cảnh Đài\n(Đỉnh Kính Vọng)", new Vector3(towerCenter.x + 3f, -0.3f, 10f), -20f);
@@ -1961,6 +1540,7 @@ namespace RungTramTraSu
             SetupPostProcessingAndFog(camObj);
 
             EditorSceneManager.SaveScene(newScene, "Assets/Scenes/Phase5_Sunset.unity");
+            SceneBeautifierAll.BeautifyPhase5();
             Debug.Log("Successfully created Phase 5 scene!");
         }
 
@@ -2566,6 +2146,62 @@ namespace RungTramTraSu
             tmp.fontSize = 0.14f; // Kích thước chữ 3D chuẩn thế giới thực
             tmp.color = Color.yellow;
             tmp.alignment = TextAlignmentOptions.Center;
+        }
+
+        private static void CreateStairFlight(string name, Vector3 startPos, Vector3 endPos, float width, Material mat, GameObject parent)
+        {
+            GameObject flightObj = new GameObject(name);
+            flightObj.transform.SetParent(parent.transform);
+
+            Vector3 diff = endPos - startPos;
+            float length = diff.magnitude;
+            float rise = diff.y;
+            float run = Mathf.Sqrt(diff.x * diff.x + diff.z * diff.z);
+
+            // 1. Create the smooth invisible ramp collider
+            GameObject ramp = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            ramp.name = name + "_RampCollider";
+            ramp.transform.SetParent(flightObj.transform);
+
+            // Position at the center of the flight
+            ramp.transform.position = startPos + diff * 0.5f + new Vector3(0f, 0.08f, 0f);
+            if (diff != Vector3.zero)
+            {
+                ramp.transform.rotation = Quaternion.LookRotation(diff);
+            }
+
+            // Scale: width, thickness 0.1f, length
+            ramp.transform.localScale = new Vector3(width, 0.15f, length);
+
+            // Disable mesh renderer so it is invisible
+            MeshRenderer mr = ramp.GetComponent<MeshRenderer>();
+            if (mr != null) Object.DestroyImmediate(mr);
+
+            // 2. Create visual steps
+            int stepCount = Mathf.Max(8, Mathf.RoundToInt(length / 0.35f));
+            Vector3 horizontalDir = new Vector3(diff.x, 0f, diff.z);
+            for (int i = 0; i < stepCount; i++)
+            {
+                float t = (float)i / (stepCount - 1);
+                Vector3 stepPos = Vector3.Lerp(startPos, endPos, t);
+
+                GameObject step = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                step.name = name + "_VisualStep_" + i;
+                step.transform.SetParent(flightObj.transform);
+                step.transform.position = stepPos;
+                if (horizontalDir != Vector3.zero)
+                {
+                    step.transform.rotation = Quaternion.LookRotation(horizontalDir);
+                }
+
+                // Step size: width, thickness 0.08f, depth 0.35f
+                step.transform.localScale = new Vector3(width, 0.08f, 0.38f);
+                step.GetComponent<Renderer>().sharedMaterial = mat;
+
+                // Destroy collider on the visual step to avoid CharacterController collision issues
+                Collider c = step.GetComponent<Collider>();
+                if (c != null) Object.DestroyImmediate(c);
+            }
         }
     }
 }
