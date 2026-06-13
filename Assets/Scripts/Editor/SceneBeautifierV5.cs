@@ -611,11 +611,11 @@ namespace RungTramTraSu.Editor
             }
 
             // --- Cliff backdrops (far edges of terrain) ---
-            // Left Edge Backdrop (X = -52)
+            // Left Edge Backdrop (X = -14.5f to stay on terrain bank)
             for (float z = -60f; z <= 60f; z += 18f)
             {
-                float x = -52f;
-                float y = GetHeightAt(x, z) - 0.5f;
+                float x = -14.5f;
+                float y = GetHeightAt(x, z) - 3.8f;
                 Vector3 pos = new Vector3(x, y, z);
                 GameObject cliff = rockCliffs[Random.Range(0, rockCliffs.Count)];
                 SpawnPrefab(cliff, pos, Quaternion.Euler(0f, Random.Range(80f, 100f), 0f), new Vector3(2.5f, Random.Range(2.5f, 4f), 2.5f), container.transform);
@@ -625,7 +625,7 @@ namespace RungTramTraSu.Editor
             for (float z = -60f; z <= 60f; z += 18f)
             {
                 float x = 52f;
-                float y = GetHeightAt(x, z) - 0.5f;
+                float y = GetHeightAt(x, z) - 3.8f;
                 Vector3 pos = new Vector3(x, y, z);
                 GameObject cliff = rockCliffs[Random.Range(0, rockCliffs.Count)];
                 SpawnPrefab(cliff, pos, Quaternion.Euler(0f, Random.Range(-100f, -80f), 0f), new Vector3(2.5f, Random.Range(2.5f, 4f), 2.5f), container.transform);

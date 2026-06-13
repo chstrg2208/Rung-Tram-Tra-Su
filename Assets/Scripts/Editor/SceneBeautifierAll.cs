@@ -456,7 +456,9 @@ namespace RungTramTraSu.Editor
                     else if (cliffs.Count > 0)
                     {
                         GameObject cliffPrefab = cliffs[Random.Range(0, cliffs.Count)];
-                        SpawnPrefab(cliffPrefab, pos, rot, Vector3.one * Random.Range(2.0f, 4.0f), rocksContainer.transform);
+                        // Lower the cliff position to bury its bottom edge and prevent floating
+                        Vector3 cliffPos = new Vector3(x, y - 2.5f, z);
+                        SpawnPrefab(cliffPrefab, cliffPos, rot, Vector3.one * Random.Range(2.0f, 4.0f), rocksContainer.transform);
                     }
                 }
             }
