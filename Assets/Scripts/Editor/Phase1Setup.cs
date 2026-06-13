@@ -699,7 +699,7 @@ namespace RungTramTraSu
             {
                 float zPos = Random.Range(-55f, 55f);
                 float xCenter = 5f + Mathf.Sin(zPos * 0.12f) * 6f;
-                float xPos = (i % 2 == 0) ? Random.Range(xCenter - 25f, xCenter - 1.8f) : Random.Range(xCenter + 1.8f, xCenter + 25f);
+                float xPos = (i % 2 == 0) ? Random.Range(xCenter - 25f, xCenter - 6.5f) : Random.Range(xCenter + 2.5f, xCenter + 25f);
 
                 GameObject forestTree = LoadAndInstantiate("Assets/Models/TeaTree/low-poly+tree+3d+model.glb", "TeaTree_" + i, new Vector3(xPos, -1.8f + 3.5f, zPos), Quaternion.Euler(0, Random.Range(0f, 360f), Random.Range(-8f, 8f)));
                 if (forestTree != null)
@@ -755,7 +755,7 @@ namespace RungTramTraSu
             // Breathing roots target (Quest item)
             GameObject rootGroup = new GameObject("BreathingRootsQuestTarget");
             float bridgeXAtZ8 = 5f + Mathf.Sin(-8f * 0.12f) * 6f;
-            rootGroup.transform.position = new Vector3(bridgeXAtZ8 - 2.5f, -1.0f, -8f);
+            rootGroup.transform.position = new Vector3(bridgeXAtZ8 - 4.8f, -1.0f, -8f);
             rootGroup.layer = LayerMask.NameToLayer("Interactable");
             
             var rootCol = rootGroup.AddComponent<SphereCollider>();

@@ -475,13 +475,15 @@ namespace RungTramTraSu.Editor
             }
             else if (phaseName == "Phase3")
             {
-                // Bamboo bridge path zone
+                // Bamboo bridge path is bridgeX = 5f + Mathf.Sin(z * 0.12f) * 6f
+                // Boat path is boatX = bridgeX - 3.5f
+                // Clear a wide corridor (bridgeX - 8.5m to bridgeX + 5.5m) to prevent boat clipping or hitting rocks/trees
                 float bridgeX = 5f + Mathf.Sin(z * 0.12f) * 6f;
-                if (Mathf.Abs(x - bridgeX) < 4.5f) return true;
+                if (x > (bridgeX - 8.5f) && x < (bridgeX + 5.5f)) return true;
                 
                 // Grandpa NPC & Boat start zone
                 float startX = 5f + Mathf.Sin(-45f * 0.12f) * 6f;
-                if (Vector2.Distance(new Vector2(x, z), new Vector2(startX - 3.5f, -45f)) < 8f) return true;
+                if (Vector2.Distance(new Vector2(x, z), new Vector2(startX - 3.5f, -45f)) < 10f) return true;
             }
             else if (phaseName == "Phase4")
             {
