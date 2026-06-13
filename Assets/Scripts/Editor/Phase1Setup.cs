@@ -1,6 +1,7 @@
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using UnityEngine.Rendering;
@@ -212,6 +213,19 @@ namespace RungTramTraSu
             {
                 return;
             }
+
+            // A. Cập nhật Skybox và Ambient Lighting cho Phase 1
+            Scene phase1Scene = EditorSceneManager.OpenScene("Assets/Scenes/Phase1_GrandpaHouse.unity", OpenSceneMode.Single);
+            Material p1Skybox = AssetDatabase.LoadAssetAtPath<Material>("Assets/EmaceArt/Slavic World Free/Skybox/Epic_BigCloudsSoft_V2/EA03_LowPolyBigClouds.mat");
+            if (p1Skybox != null)
+            {
+                RenderSettings.skybox = p1Skybox;
+            }
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 1.25f;
+            DynamicGI.UpdateEnvironment();
+            EditorSceneManager.MarkSceneDirty(phase1Scene);
+            EditorSceneManager.SaveScene(phase1Scene);
 
             // 1. Chạy Setup Phase 2 -> 5 (các phase này tự động beautify ở cuối mỗi CreatePhaseXScene)
             CreatePhase2Scene();
@@ -1719,19 +1733,19 @@ namespace RungTramTraSu
             RenderSettings.fogDensity = 0.015f; // Độ đậm sương mù nhẹ nhàng thanh thoát
 
             // 2. Áp dụng Skybox
-            Material skyboxMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/Proxy Games/Stylized Nature Kit Lite/Materials/Skybox.mat");
+            Material skyboxMat = AssetDatabase.LoadAssetAtPath<Material>("Assets/EmaceArt/Slavic World Free/Skybox/Epic_BigCloudsSoft_V2/EA03_LowPolyBigClouds.mat");
             if (skyboxMat != null)
             {
                 RenderSettings.skybox = skyboxMat;
             }
             else
             {
-                Debug.LogWarning("Không tìm thấy Skybox material tại Assets/Proxy Games/Stylized Nature Kit Lite/Materials/Skybox.mat");
+                Debug.LogWarning("Không tìm thấy Skybox material tại Assets/EmaceArt/Slavic World Free/Skybox/Epic_BigCloudsSoft_V2/EA03_LowPolyBigClouds.mat");
             }
 
-            // 3. Cấu hình Ambient fill light để tránh bóng đổ quá đen tối màu
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.28f, 0.34f, 0.38f); // Màu xanh bầu trời dịu mát
+            // 3. Cấu hình Ambient fill light để tránh bóng đổ quá đen tối màu (sử dụng Skybox cho trung thực)
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 1.25f;
             DynamicGI.UpdateEnvironment();
 
             // 4. Tạo đối tượng Global Volume chứa hậu kỳ

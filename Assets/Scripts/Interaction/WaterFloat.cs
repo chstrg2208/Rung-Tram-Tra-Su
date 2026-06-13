@@ -18,6 +18,10 @@ namespace RungTramTraSu
         private float initialYaw;
         private float randomOffset;
         private Transform playerTransform;
+        private Transform grandpaTransform;
+
+        private float smoothPitch = 0f;
+        private float smoothRoll = 0f;
 
         private void Start()
         {
@@ -27,6 +31,12 @@ namespace RungTramTraSu
 
             var player = GameObject.Find("Player");
             if (player != null) playerTransform = player.transform;
+
+            var grandpa = GameObject.Find("Grandpa_NPC");
+            if (grandpa != null) grandpaTransform = grandpa.transform;
+
+            smoothPitch = pitchOffset;
+            smoothRoll = rollOffset;
         }
 
         private void Update()
@@ -68,14 +78,19 @@ namespace RungTramTraSu
                 waveHeight = initialY + Mathf.Sin(timeVal * 1.2f) * 0.04f;
             }
 
-            float playerDipY = 0f;
-            float playerPitch = 0f;
-            float playerRoll = 0f;
+            float combinedDipY = 0f;
+            float combinedPitch = 0f;
+            float combinedRoll = 0f;
 
             if (playerTransform == null)
             {
                 var pGo = GameObject.Find("Player");
                 if (pGo != null) playerTransform = pGo.transform;
+            }
+            if (grandpaTransform == null)
+            {
+                var gGo = GameObject.Find("Grandpa_NPC");
+                if (gGo != null) grandpaTransform = gGo.transform;
             }
 
             if (playerTransform != null)
@@ -91,35 +106,58 @@ namespace RungTramTraSu
                     float rightDot = Vector3.Dot(dir, localRight);
 
                     float factor = Mathf.Clamp01((4.0f - dist) / 4.0f); // 0 to 1
-                    playerDipY = -0.06f * factor; // Dip up to 6cm
+                    combinedDipY += -0.06f * factor; // Dip up to 6cm
 
                     // Tilt towards the player
-                    playerPitch = forwardDot * 4.0f * factor;
-                    playerRoll = -rightDot * 4.0f * factor;
+                    combinedPitch += forwardDot * 4.0f * factor;
+                    combinedRoll += -rightDot * 4.0f * factor;
+                }
+            }
+
+            if (grandpaTransform != null)
+            {
+                float dist = Vector3.Distance(transform.position, grandpaTransform.position);
+                if (dist < 4.0f)
+                {
+                    Vector3 dir = grandpaTransform.position - transform.position;
+                    Vector3 localForward = transform.right.normalized;  // Boat length is along local X
+                    Vector3 localRight = transform.forward.normalized;  // Boat width is along local Z
+
+                    float forwardDot = Vector3.Dot(dir, localForward);
+                    float rightDot = Vector3.Dot(dir, localRight);
+
+                    float factor = Mathf.Clamp01((4.0f - dist) / 4.0f); // 0 to 1
+                    combinedDipY += -0.05f * factor; // Grandpa dips boat up to 5cm
+
+                    // Tilt towards Grandpa
+                    combinedPitch += forwardDot * 4.0f * factor;
+                    combinedRoll += -rightDot * 4.0f * factor;
                 }
             }
 
             // Set Y position
-            float targetY = waveHeight + initialYOffset + playerDipY;
+            float targetY = waveHeight + initialYOffset + combinedDipY;
             transform.position = new Vector3(pos.x, targetY, pos.z);
 
             // Calculate local pitch and roll angles
-            float pitch = slopeLength * 35f;   // Positive Z rotation tilts local +X up
-            float roll = -slopeWidth * 35f;    // Negative X rotation tilts local +Z up
+            float wavePitch = slopeLength * 35f;   // Positive Z rotation tilts local +X up
+            float waveRoll = -slopeWidth * 35f;    // Negative X rotation tilts local +Z up
 
             // Clamp tilt angles to prevent unrealistic vertical or upside-down orientations
-            pitch = Mathf.Clamp(pitch, -25f, 25f);
-            roll = Mathf.Clamp(roll, -25f, 25f);
+            wavePitch = Mathf.Clamp(wavePitch, -25f, 25f);
+            waveRoll = Mathf.Clamp(waveRoll, -25f, 25f);
 
-            // Add a gentle wind/water wobble
-            pitch += Mathf.Sin(timeVal * rockFrequency) * rockXAmplitude + pitchOffset + playerPitch;
-            roll += Mathf.Cos(timeVal * rockFrequency * 1.3f) * rockZAmplitude + rollOffset + playerRoll;
+            // Target pitch/roll including wave bobbing, character weight, and random wobble
+            float targetPitch = wavePitch + Mathf.Sin(timeVal * rockFrequency) * rockXAmplitude + pitchOffset + combinedPitch;
+            float targetRoll = waveRoll + Mathf.Cos(timeVal * rockFrequency * 1.3f) * rockZAmplitude + rollOffset + combinedRoll;
+
+            // Interpolate smooth pitch and roll (simulating boat weight and inertia)
+            smoothPitch = Mathf.Lerp(smoothPitch, targetPitch, Time.deltaTime * 3.5f);
+            smoothRoll = Mathf.Lerp(smoothRoll, targetRoll, Time.deltaTime * 3.5f);
 
             // Apply rotation relative to current yaw:
-            // - X-axis rotation is roll (tilts side-to-side)
-            // - Z-axis rotation is pitch (tilts front-to-back)
             float currentYaw = transform.rotation.eulerAngles.y;
-            transform.rotation = Quaternion.Euler(0f, currentYaw, 0f) * Quaternion.Euler(roll, 0f, pitch);
+            transform.rotation = Quaternion.Euler(0f, currentYaw, 0f) * Quaternion.Euler(smoothRoll, 0f, smoothPitch);
         }
     }
 }

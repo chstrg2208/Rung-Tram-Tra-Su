@@ -41,6 +41,22 @@ namespace RungTramTraSu
             if (playerCamera == null) playerCamera = Camera.main;
             targetFOV = normalFOV;
             
+            // Auto find or add AudioSource
+            if (audioSource == null)
+            {
+                audioSource = GetComponent<AudioSource>();
+                if (audioSource == null)
+                {
+                    audioSource = gameObject.AddComponent<AudioSource>();
+                }
+            }
+
+            // Synthesize shutter sound if null
+            if (shutterSound == null)
+            {
+                shutterSound = CreateSyntheticShutterSound();
+            }
+
             // Tự động mở khóa camera ở các Phase sau Phase 2 (Phase 3, 4, 5)
             string sceneName = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name;
             if (sceneName.Contains("Phase3") || sceneName.Contains("Phase4") || sceneName.Contains("Phase5"))
@@ -59,6 +75,46 @@ namespace RungTramTraSu
                 // Thiết lập màu trắng đục nhưng trong suốt
                 flashImage.color = new Color(1, 1, 1, 0);
             }
+        }
+
+        private AudioClip CreateSyntheticShutterSound()
+        {
+            int sampleRate = 44100;
+            float duration = 0.18f;
+            int sampleCount = Mathf.RoundToInt(sampleRate * duration);
+            float[] samples = new float[sampleCount];
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = (float)i / sampleRate;
+                
+                // Click 1 (Mirror up) - starts at t = 0
+                float click1 = 0f;
+                if (t < 0.04f)
+                {
+                    float decay1 = Mathf.Exp(-t * 150f); // Fast decay
+                    float noise = Random.Range(-1f, 1f) * 0.4f;
+                    float tone = Mathf.Sin(2f * Mathf.PI * 1200f * t) * 0.6f;
+                    click1 = (noise + tone) * decay1;
+                }
+
+                // Click 2 (Mirror down) - starts at t = 0.08s
+                float click2 = 0f;
+                if (t >= 0.08f && t < 0.15f)
+                {
+                    float t2 = t - 0.08f;
+                    float decay2 = Mathf.Exp(-t2 * 120f); // Decay
+                    float noise = Random.Range(-1f, 1f) * 0.3f;
+                    float tone = Mathf.Sin(2f * Mathf.PI * 800f * t2) * 0.7f;
+                    click2 = (noise + tone) * decay2;
+                }
+
+                samples[i] = click1 + click2;
+            }
+
+            AudioClip clip = AudioClip.Create("SyntheticShutter", sampleCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
         }
 
         private void Update()

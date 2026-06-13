@@ -82,7 +82,9 @@ namespace RungTramTraSu.Editor
             PopulateFoliageAndRocks("Phase2");
 
             // 4. Setup skybox & fog
-            ApplySkybox("Assets/Proxy Games/Stylized Nature Kit Lite/Materials/Skybox.mat");
+            ApplySkybox("Assets/EmaceArt/Slavic World Free/Skybox/Epic_BigCloudsSoft_V2/EA03_LowPolyBigClouds.mat");
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 1.25f;
             RenderSettings.fog = true;
             RenderSettings.fogColor = new Color(0.6f, 0.78f, 0.72f);
             RenderSettings.fogMode = FogMode.ExponentialSquared;
@@ -125,7 +127,9 @@ namespace RungTramTraSu.Editor
             }
 
             // 5. Setup skybox & deeper fog
-            ApplySkybox("Assets/Proxy Games/Stylized Nature Kit Lite/Materials/Skybox.mat");
+            ApplySkybox("Assets/EmaceArt/Slavic World Free/Skybox/Epic_BigCloudsSoft_V2/EA03_LowPolyBigClouds.mat");
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 1.25f;
             RenderSettings.fog = true;
             RenderSettings.fogColor = new Color(0.55f, 0.74f, 0.68f);
             RenderSettings.fogMode = FogMode.ExponentialSquared;
@@ -156,7 +160,9 @@ namespace RungTramTraSu.Editor
             UpgradeFauna();
 
             // 5. Setup skybox & fog
-            ApplySkybox("Assets/Proxy Games/Stylized Nature Kit Lite/Materials/Skybox.mat");
+            ApplySkybox("Assets/EmaceArt/Slavic World Free/Skybox/Epic_BigCloudsSoft_V2/EA03_LowPolyBigClouds.mat");
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 1.25f;
             RenderSettings.fog = true;
             RenderSettings.fogColor = new Color(0.6f, 0.78f, 0.72f);
             RenderSettings.fogMode = FogMode.ExponentialSquared;
@@ -211,7 +217,7 @@ namespace RungTramTraSu.Editor
             }
 
             // 5. Setup warm sunset lighting, fog, skybox, volume
-            ApplySkybox("Assets/Proxy Games/Stylized Nature Kit Lite/Materials/Skybox 2.mat");
+            ApplySkybox("Assets/EmaceArt/Slavic World Free/Skybox/Epic_BigCloudsSoft_V2/EA03_LowPolyBigClouds.mat");
             SetupSunsetVolumeAndAtmosphere();
 
             // 6. Save scene
@@ -285,9 +291,9 @@ namespace RungTramTraSu.Editor
                 }
             }
 
-            // 3. Setup warm ambient light
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.35f, 0.2f, 0.25f); // Deep sunset ambient
+            // 3. Setup warm ambient light (use Skybox mode)
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 1.25f;
             DynamicGI.UpdateEnvironment();
 
             // 4. Create or load Sunset Volume Profile

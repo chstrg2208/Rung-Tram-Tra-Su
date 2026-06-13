@@ -9,6 +9,8 @@ namespace RungTramTraSu
         [Header("Audio Clips")]
         public AudioClip[] grassFootsteps;
         public AudioClip[] woodFootsteps; 
+        public AudioClip[] stoneFootsteps;
+        public AudioClip[] dirtFootsteps;
 
         [Header("Settings")]
         [SerializeField] private float walkInterval = 0.45f;
@@ -34,6 +36,75 @@ namespace RungTramTraSu
             audioSource.spatialBlend = 0.1f; 
             audioSource.playOnAwake = false;
             audioSource.loop = false;
+
+            // Generate procedural clips if arrays are empty or unassigned
+            if (grassFootsteps == null || grassFootsteps.Length == 0)
+            {
+                grassFootsteps = new AudioClip[] { CreateSyntheticFootstep("grass") };
+            }
+            if (woodFootsteps == null || woodFootsteps.Length == 0)
+            {
+                woodFootsteps = new AudioClip[] { CreateSyntheticFootstep("wood") };
+            }
+            if (stoneFootsteps == null || stoneFootsteps.Length == 0)
+            {
+                stoneFootsteps = new AudioClip[] { CreateSyntheticFootstep("stone") };
+            }
+            if (dirtFootsteps == null || dirtFootsteps.Length == 0)
+            {
+                dirtFootsteps = new AudioClip[] { CreateSyntheticFootstep("dirt") };
+            }
+        }
+
+        private AudioClip CreateSyntheticFootstep(string type)
+        {
+            int sampleRate = 22050;
+            float duration = 0.12f;
+            int sampleCount = Mathf.RoundToInt(sampleRate * duration);
+            float[] samples = new float[sampleCount];
+
+            float freq = 120f;
+            float decayFactor = 150f;
+            float noiseMix = 0.5f;
+
+            if (type == "wood")
+            {
+                freq = 95f;
+                decayFactor = 70f;
+                noiseMix = 0.35f;
+            }
+            else if (type == "stone")
+            {
+                freq = 450f;
+                decayFactor = 220f;
+                noiseMix = 0.7f;
+            }
+            else if (type == "dirt")
+            {
+                freq = 150f;
+                decayFactor = 120f;
+                noiseMix = 0.8f;
+            }
+            else // grass
+            {
+                freq = 280f;
+                decayFactor = 180f;
+                noiseMix = 0.9f;
+            }
+
+            for (int i = 0; i < sampleCount; i++)
+            {
+                float t = (float)i / sampleRate;
+                float decay = Mathf.Exp(-t * decayFactor);
+                float noise = Random.Range(-1f, 1f) * noiseMix;
+                float tone = Mathf.Sin(2f * Mathf.PI * freq * t) * (1f - noiseMix);
+                
+                samples[i] = (noise + tone) * decay * 0.5f;
+            }
+
+            AudioClip clip = AudioClip.Create("SyntheticFootstep_" + type, sampleCount, 1, sampleRate, false);
+            clip.SetData(samples, 0);
+            return clip;
         }
 
         private void Update()
@@ -63,12 +134,10 @@ namespace RungTramTraSu
 
         private string DetectSurface()
         {
-            // Raycast down from slightly above player feet
             if (Physics.Raycast(transform.position + Vector3.up * 0.2f, Vector3.down, out RaycastHit hit, 1.5f))
             {
                 string hitName = hit.collider.gameObject.name.ToLower();
                 
-                // Climb up the hierarchy parent names to catch nested child objects
                 Transform parent = hit.collider.transform.parent;
                 while (parent != null)
                 {
@@ -76,12 +145,25 @@ namespace RungTramTraSu
                     parent = parent.parent;
                 }
 
-                // If hit walkway, bridge, house structure, wood planks, or deck
                 if (hitName.Contains("wood") || hitName.Contains("bridge") || 
                     hitName.Contains("house") || hitName.Contains("plank") || 
-                    hitName.Contains("walkway") || hitName.Contains("deck"))
+                    hitName.Contains("walkway") || hitName.Contains("deck") || hitName.Contains("go"))
                 {
                     return "wood";
+                }
+                
+                if (hitName.Contains("stone") || hitName.Contains("rock") || 
+                    hitName.Contains("boulder") || hitName.Contains("concrete") || 
+                    hitName.Contains("brick") || hitName.Contains("gravel") || hitName.Contains("da"))
+                {
+                    return "stone";
+                }
+
+                if (hitName.Contains("dirt") || hitName.Contains("mud") || 
+                    hitName.Contains("soil") || hitName.Contains("ground") || 
+                    hitName.Contains("dat"))
+                {
+                    return "dirt";
                 }
             }
             return "grass";
@@ -90,40 +172,55 @@ namespace RungTramTraSu
         private void PlayFootstep(string surface)
         {
             AudioClip[] clips = grassFootsteps;
-            bool isFallback = false;
-
             if (surface == "wood")
             {
-                if (woodFootsteps != null && woodFootsteps.Length > 0)
-                {
-                    clips = woodFootsteps;
-                }
-                else
-                {
-                    // Fallback to grass but modify pitch/volume to sound like hollow wood thud
-                    clips = grassFootsteps;
-                    isFallback = true;
-                }
+                clips = woodFootsteps;
+            }
+            else if (surface == "stone")
+            {
+                clips = stoneFootsteps;
+            }
+            else if (surface == "dirt")
+            {
+                clips = dirtFootsteps;
             }
 
+            if (clips == null || clips.Length == 0)
+            {
+                clips = grassFootsteps;
+            }
             if (clips == null || clips.Length == 0) return;
 
             int index = Random.Range(0, clips.Length);
             AudioClip clip = clips[index];
-            if (clip != null)
+            if (clip == null) return;
+
+            float currentPitch = Random.Range(0.85f, 1.15f);
+            float currentVolume = volume;
+
+            if (surface == "wood")
             {
-                if (isFallback)
-                {
-                    // Pitch shift lower and increase volume slightly for hollow wood fallback sound
-                    audioSource.pitch = Random.Range(0.6f, 0.72f);
-                    audioSource.PlayOneShot(clip, volume * 1.15f);
-                }
-                else
-                {
-                    audioSource.pitch = Random.Range(0.85f, 1.15f);
-                    audioSource.PlayOneShot(clip, volume);
-                }
+                currentPitch = Random.Range(0.9f, 1.1f);
+                currentVolume = volume * 1.1f;
             }
+            else if (surface == "stone")
+            {
+                currentPitch = Random.Range(0.95f, 1.05f);
+                currentVolume = volume * 0.9f;
+            }
+            else if (surface == "dirt")
+            {
+                currentPitch = Random.Range(0.9f, 1.1f);
+                currentVolume = volume * 0.95f;
+            }
+            else // grass
+            {
+                currentPitch = Random.Range(0.9f, 1.1f);
+                currentVolume = volume;
+            }
+
+            audioSource.pitch = currentPitch;
+            audioSource.PlayOneShot(clip, currentVolume);
         }
     }
 }

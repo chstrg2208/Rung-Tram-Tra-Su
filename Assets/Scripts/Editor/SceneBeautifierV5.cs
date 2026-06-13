@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine.SceneManagement;
@@ -56,7 +56,7 @@ namespace RungTramTraSu.Editor
 
         // Material Paths
         private const string TerrainGrassTexturePath = KitPath + "Textures/Terrain Grass.png";
-        private const string SkyboxMaterialPath = KitPath + "Materials/Skybox.mat";
+        private const string SkyboxMaterialPath = "Assets/EmaceArt/Slavic World Free/Skybox/Epic_BigCloudsSoft_V2/EA03_LowPolyBigClouds.mat";
 
         private static float GetHeightAt(float x, float z)
         {
@@ -733,9 +733,9 @@ namespace RungTramTraSu.Editor
                 Debug.Log("Directional light rotation and intensity adjusted.");
             }
 
-            // Configure URP Ambient fill light to resolve pitch-black shadows in non-lit areas
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
-            RenderSettings.ambientLight = new Color(0.28f, 0.34f, 0.38f); // Beautiful soft sky-blue ambient light
+            // Configure URP Ambient fill light to resolve pitch-black shadows in non-lit areas (use Skybox mode)
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Skybox;
+            RenderSettings.ambientIntensity = 1.25f;
             DynamicGI.UpdateEnvironment();
             Debug.Log("Ambient fill light configured successfully!");
 
